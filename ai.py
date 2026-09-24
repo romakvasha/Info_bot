@@ -41,10 +41,7 @@ class Post:
 
 # ── Gemini ──────────────────────────────────────────────────────────────
 
-def _gemini_once(model: str, system: str, prompt: str) -> str:
-    key = os.environ.get("GEMINI_API_KEY", "").strip()
-    if not key:
-        raise AIError("не задано секрет GEMINI_API_KEY")
+def _gemini_once(model: str, key: str, system: str, prompt: str) -> str:
     body = {
         "systemInstruction": {"parts": [{"text": system}]},
         "contents": [{"role": "user", "parts": [{"text": prompt}]}],
@@ -75,11 +72,14 @@ def _gemini_once(model: str, system: str, prompt: str) -> str:
 
 
 def _ask_gemini(system: str, prompt: str) -> str:
+    key = os.environ.get("GEMINI_API_KEY", "").strip()
+    if not key:  # без ключа інші моделі теж не спрацюють, тож одразу кажемо про це
+        raise AIError("не задано секрет GEMINI_API_KEY")
     problems = []
     for model in config.GEMINI_MODELS:
         for attempt in range(3):
             try:
-                return _gemini_once(model, system, prompt)
+                return _gemini_once(model, key, system, prompt)
             except _TryLater as exc:
                 problems.append(f"{model}: {exc}")
                 if attempt < 2:
