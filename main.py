@@ -138,6 +138,9 @@ def main() -> int:
 
     mode = "тестовий запуск без публікації" if dry_run else "запуск"
     log.info("🤖 Новини Польща: %s, AI — %s", mode, config.AI_PROVIDER)
+    for name in os.environ.get("NAMES_IN_VARIABLES", "").split():
+        log.warning("⚠️  %s додано у Variables, а бот читає лише Secrets. Створи його у вкладці "
+                    "Secrets (Settings → Secrets and variables → Actions), а з Variables видали.", name)
 
     # Telegram перевіряємо на самому початку, щоб не витрачати ліміт AI даремно
     telegram_ok = True
