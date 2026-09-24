@@ -9,7 +9,7 @@ import logging
 import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from urllib.parse import parse_qsl, urlencode, urlsplit
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import feedparser
 import requests
@@ -40,17 +40,33 @@ def clean_text(value: str) -> str:
     return re.sub(r"\s+", " ", value).strip()
 
 
+def _without_tracking(query: str) -> str:
+    """Параметри адреси без трекінгових міток (utm_source тощо)."""
+    pairs = [
+        (k, v)
+        for k, v in parse_qsl(query, keep_blank_values=True)
+        if not k.lower().startswith(TRACKING_PREFIXES)
+    ]
+    return urlencode(pairs)
+
+
+def clean_link(url: str) -> str:
+    """Посилання для поста: те саме, але без трекінгових міток."""
+    url = url.strip()
+    parts = urlsplit(url)
+    names = [k.lower() for k, _ in parse_qsl(parts.query, keep_blank_values=True)]
+    if not any(name.startswith(TRACKING_PREFIXES) for name in names):
+        return url  # міток немає — посилання не чіпаємо
+    return urlunsplit(parts._replace(query=_without_tracking(parts.query)))
+
+
 def normalize_url(url: str) -> str:
     """Ключ для порівняння посилань: без http/https, www і трекінгових міток."""
     parts = urlsplit(url.strip())
-    query = [
-        (k, v)
-        for k, v in parse_qsl(parts.query, keep_blank_values=True)
-        if not k.lower().startswith(TRACKING_PREFIXES)
-    ]
+    query = _without_tracking(parts.query)
     host = parts.netloc.lower().removeprefix("www.")
     path = parts.path.rstrip("/")
-    return host + path + ("?" + urlencode(query) if query else "")
+    return host + path + ("?" + query if query else "")
 
 
 def title_key(title: str) -> str:
@@ -91,7 +107,7 @@ def collect(feeds: dict, known_urls: set, known_titles: set,
 
         taken = 0
         for entry in entries:
-            link = (entry.get("link") or "").strip()
+            link = clean_link(entry.get("link") or "")
             title = clean_text(entry.get("title", ""))
             if not link or not title or any(part in link for part in skip_parts):
                 continue

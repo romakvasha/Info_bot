@@ -47,6 +47,20 @@ def recent_headlines(state: dict, limit: int = 40) -> list[str]:
     return [e.get("headline") or e.get("title", "") for e in published[-limit:]]
 
 
+def posted_today(state: dict, tz) -> int:
+    """Скільки постів уже опубліковано сьогодні (день рахуємо за часовим поясом tz)."""
+    today = datetime.now(tz).date()
+    count = 0
+    for entry in state["posted"]:
+        if entry.get("status") != "posted" or not entry.get("at"):
+            continue
+        try:
+            count += datetime.fromisoformat(entry["at"]).astimezone(tz).date() == today
+        except ValueError:
+            continue
+    return count
+
+
 def remember(state: dict, url: str, title: str, status: str, headline: str = "", topic: str = "") -> None:
     """status: "posted" — опубліковано, "skipped" — замало інформації, "failed" — помилка."""
     state["posted"].append(

@@ -24,12 +24,23 @@ GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:ge
 CLAUDE_URL = "https://api.anthropic.com/v1/messages"
 
 
+RETRY_PAUSE = 30  # секунд паузи, якщо зайняті всі моделі одразу
+
+
 class AIError(Exception):
     """Помилка AI, яку немає сенсу повторювати тією ж моделлю."""
 
 
+class AIUnavailable(AIError):
+    """AI тимчасово недоступний (перевантаження, вичерпано ліміт): спробуємо наступного запуску."""
+
+
 class _TryLater(Exception):
-    """Тимчасова помилка (перевантаження, ліміт за хвилину): варто почекати."""
+    """Тимчасова помилка (перевантаження, ліміт за хвилину): варто спробувати ще раз."""
+
+
+class _DailyLimit(Exception):
+    """Денний ліміт моделі вичерпано: сьогодні її вже не пробуємо."""
 
 
 @dataclass
@@ -55,6 +66,8 @@ def _gemini_once(model: str, key: str, system: str, prompt: str) -> str:
 
     if resp.status_code == 429 and "limit: 0" in resp.text:
         raise AIError("модель недоступна на безкоштовному тарифі")
+    if resp.status_code == 429 and "PerDay" in resp.text:
+        raise _DailyLimit("вичерпано денний ліміт запитів")
     if resp.status_code in (429, 500, 502, 503, 504):
         raise _TryLater(f"HTTP {resp.status_code}")
     if resp.status_code != 200:
@@ -75,22 +88,31 @@ def _ask_gemini(system: str, prompt: str) -> str:
     key = os.environ.get("GEMINI_API_KEY", "").strip()
     if not key:  # без ключа інші моделі теж не спрацюють, тож одразу кажемо про це
         raise AIError("не задано секрет GEMINI_API_KEY")
-    problems = []
-    for model in config.GEMINI_MODELS:
-        for attempt in range(3):
+    # Якщо модель зайнята, одразу пробуємо наступну, а не чекаємо.
+    # Пауза — лише коли зайняті всі, тоді проходимо список ще раз.
+    models, problems, temporary = list(config.GEMINI_MODELS), [], False
+    for round_no in range(2):
+        if round_no and models:
+            log.warning("   Усі моделі Gemini зайняті, чекаю %d с…", RETRY_PAUSE)
+            time.sleep(RETRY_PAUSE)
+        for model in list(models):
             try:
                 return _gemini_once(model, key, system, prompt)
             except _TryLater as exc:
+                temporary = True
                 problems.append(f"{model}: {exc}")
-                if attempt < 2:
-                    wait = 30 * (attempt + 1)
-                    log.warning("   Gemini %s зайнятий (%s), чекаю %d с…", model, exc, wait)
-                    time.sleep(wait)
+                log.warning("   Gemini %s зайнятий (%s), пробую наступну модель", model, exc)
+            except _DailyLimit as exc:
+                temporary = True
+                models.remove(model)
+                problems.append(f"{model}: {exc}")
+                log.warning("   Gemini %s: %s", model, exc)
             except AIError as exc:
+                models.remove(model)
                 problems.append(f"{model}: {exc}")
                 log.warning("   Gemini %s не підійшов: %s", model, exc)
-                break  # пробуємо наступну модель
-    raise AIError("жодна модель Gemini не відповіла:\n  " + "\n  ".join(problems[-6:]))
+    error = AIUnavailable if temporary else AIError
+    raise error("жодна модель Gemini не відповіла:\n  " + "\n  ".join(problems[-6:]))
 
 
 # ── Claude ──────────────────────────────────────────────────────────────
@@ -122,27 +144,27 @@ def _ask_claude(system: str, prompt: str) -> str:
             wait = 20 * (attempt + 1)
             log.warning("   Claude зайнятий (%s), чекаю %d с…", problem, wait)
             time.sleep(wait)
-    raise AIError(f"Claude не відповів після кількох спроб ({problem})")
+    raise AIUnavailable(f"Claude не відповів після кількох спроб ({problem})")
 
 
 # ── Спільне ─────────────────────────────────────────────────────────────
 
-def _parse_json(text: str) -> dict:
+def _parse_json(text: str) -> dict | list:
     cleaned = re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip())
     try:
         data = json.loads(cleaned)
     except json.JSONDecodeError:
-        match = re.search(r"\{.*\}", cleaned, re.S)
+        match = re.search(r"[\[{].*[\]}]", cleaned, re.S)
         try:
             data = json.loads(match.group(0)) if match else None
         except json.JSONDecodeError:
             data = None
-    if not isinstance(data, dict):
+    if not isinstance(data, (dict, list)):
         raise AIError(f"AI повернув не JSON: {text[:200]}")
     return data
 
 
-def ask_json(system: str, prompt: str) -> dict:
+def ask_json(system: str, prompt: str) -> dict | list:
     if config.AI_PROVIDER == "claude":
         return _parse_json(_ask_claude(system, prompt))
     return _parse_json(_ask_gemini(system, prompt))
@@ -172,9 +194,12 @@ def select_news(items: list[NewsItem], recent: list[str], limit: int) -> list[tu
     )
     data = ask_json(prompts.SELECT_SYSTEM, prompt)
 
+    # легші моделі інколи повертають одразу список замість {"selected": [...]}
+    entries = data.get("selected") if isinstance(data, dict) else data
+
     by_id = {item.id: item for item in items}
     chosen, used = [], set()
-    for entry in data.get("selected") or []:
+    for entry in entries or []:
         if not isinstance(entry, dict):
             continue
         try:
@@ -195,6 +220,8 @@ def write_post(item: NewsItem, article_text: str) -> Post | None:
     """Пише пост. Повертає None, якщо в статті замало інформації."""
     prompt = prompts.WRITE_PROMPT.format(source=item.source, title=item.title, text=article_text)
     data = ask_json(prompts.WRITE_SYSTEM, prompt)
+    if isinstance(data, list):  # відповідь загорнута в список — беремо перший об'єкт
+        data = next((entry for entry in data if isinstance(entry, dict)), {})
     if data.get("enough_info") is False:
         return None
     post = Post(

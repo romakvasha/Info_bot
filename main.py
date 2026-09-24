@@ -163,6 +163,12 @@ def main() -> int:
 
 def run(dry_run: bool, token: str, channel: str) -> int:
     state = storage.load()
+    today = storage.posted_today(state, WARSAW)
+    limit = min(config.POSTS_PER_RUN, config.MAX_POSTS_PER_DAY - today)
+    if limit <= 0:
+        log.info("Сьогодні вже опубліковано %d постів — це денний максимум. До завтра!", today)
+        return 0
+
     items = news.collect(
         config.RSS_FEEDS,
         storage.known_url_keys(state),
@@ -178,7 +184,11 @@ def run(dry_run: bool, token: str, channel: str) -> int:
     candidates = news.pick_candidates(items, config.MAX_CANDIDATES)
     log.info("🔎 AI відбирає найважливіше з %d новин…", len(candidates))
     try:
-        selected = ai.select_news(candidates, storage.recent_headlines(state), config.POSTS_PER_RUN)
+        selected = ai.select_news(candidates, storage.recent_headlines(state), limit)
+    except ai.AIUnavailable as exc:
+        # тимчасовий збій: через годину буде новий запуск, тож не «червонимо» цей
+        log.warning("⏸  AI зараз недоступний, спробую наступного запуску: %s", exc)
+        return 0
     except ai.AIError as exc:
         log.error("❌ AI не зміг відібрати новини: %s", exc)
         return 1
@@ -194,6 +204,10 @@ def run(dry_run: bool, token: str, channel: str) -> int:
             text = "\n".join(part for part in (item.title, item.summary, text) if part)
         try:
             post = ai.write_post(item, text)
+        except ai.AIUnavailable as exc:
+            # новину не позначаємо: наступного запуску AI зможе написати пост про неї
+            log.warning("   ⏸  AI зараз недоступний, решту новин лишаю на наступний запуск: %s", exc)
+            break
         except ai.AIError as exc:
             log.error("   ❌ AI не написав пост: %s", exc)
             failed += 1
