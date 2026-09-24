@@ -24,12 +24,23 @@ GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:ge
 CLAUDE_URL = "https://api.anthropic.com/v1/messages"
 
 
+RETRY_PAUSE = 30  # секунд паузи, якщо зайняті всі моделі одразу
+
+
 class AIError(Exception):
     """Помилка AI, яку немає сенсу повторювати тією ж моделлю."""
 
 
+class AIUnavailable(AIError):
+    """AI тимчасово недоступний (перевантаження, вичерпано ліміт): спробуємо наступного запуску."""
+
+
 class _TryLater(Exception):
-    """Тимчасова помилка (перевантаження, ліміт за хвилину): варто почекати."""
+    """Тимчасова помилка (перевантаження, ліміт за хвилину): варто спробувати ще раз."""
+
+
+class _DailyLimit(Exception):
+    """Денний ліміт моделі вичерпано: сьогодні її вже не пробуємо."""
 
 
 @dataclass
@@ -55,6 +66,8 @@ def _gemini_once(model: str, key: str, system: str, prompt: str) -> str:
 
     if resp.status_code == 429 and "limit: 0" in resp.text:
         raise AIError("модель недоступна на безкоштовному тарифі")
+    if resp.status_code == 429 and "PerDay" in resp.text:
+        raise _DailyLimit("вичерпано денний ліміт запитів")
     if resp.status_code in (429, 500, 502, 503, 504):
         raise _TryLater(f"HTTP {resp.status_code}")
     if resp.status_code != 200:
@@ -75,22 +88,31 @@ def _ask_gemini(system: str, prompt: str) -> str:
     key = os.environ.get("GEMINI_API_KEY", "").strip()
     if not key:  # без ключа інші моделі теж не спрацюють, тож одразу кажемо про це
         raise AIError("не задано секрет GEMINI_API_KEY")
-    problems = []
-    for model in config.GEMINI_MODELS:
-        for attempt in range(3):
+    # Якщо модель зайнята, одразу пробуємо наступну, а не чекаємо.
+    # Пауза — лише коли зайняті всі, тоді проходимо список ще раз.
+    models, problems, temporary = list(config.GEMINI_MODELS), [], False
+    for round_no in range(2):
+        if round_no and models:
+            log.warning("   Усі моделі Gemini зайняті, чекаю %d с…", RETRY_PAUSE)
+            time.sleep(RETRY_PAUSE)
+        for model in list(models):
             try:
                 return _gemini_once(model, key, system, prompt)
             except _TryLater as exc:
+                temporary = True
                 problems.append(f"{model}: {exc}")
-                if attempt < 2:
-                    wait = 30 * (attempt + 1)
-                    log.warning("   Gemini %s зайнятий (%s), чекаю %d с…", model, exc, wait)
-                    time.sleep(wait)
+                log.warning("   Gemini %s зайнятий (%s), пробую наступну модель", model, exc)
+            except _DailyLimit as exc:
+                temporary = True
+                models.remove(model)
+                problems.append(f"{model}: {exc}")
+                log.warning("   Gemini %s: %s", model, exc)
             except AIError as exc:
+                models.remove(model)
                 problems.append(f"{model}: {exc}")
                 log.warning("   Gemini %s не підійшов: %s", model, exc)
-                break  # пробуємо наступну модель
-    raise AIError("жодна модель Gemini не відповіла:\n  " + "\n  ".join(problems[-6:]))
+    error = AIUnavailable if temporary else AIError
+    raise error("жодна модель Gemini не відповіла:\n  " + "\n  ".join(problems[-6:]))
 
 
 # ── Claude ──────────────────────────────────────────────────────────────
@@ -122,7 +144,7 @@ def _ask_claude(system: str, prompt: str) -> str:
             wait = 20 * (attempt + 1)
             log.warning("   Claude зайнятий (%s), чекаю %d с…", problem, wait)
             time.sleep(wait)
-    raise AIError(f"Claude не відповів після кількох спроб ({problem})")
+    raise AIUnavailable(f"Claude не відповів після кількох спроб ({problem})")
 
 
 # ── Спільне ─────────────────────────────────────────────────────────────
