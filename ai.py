@@ -149,22 +149,22 @@ def _ask_claude(system: str, prompt: str) -> str:
 
 # ── Спільне ─────────────────────────────────────────────────────────────
 
-def _parse_json(text: str) -> dict:
+def _parse_json(text: str) -> dict | list:
     cleaned = re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip())
     try:
         data = json.loads(cleaned)
     except json.JSONDecodeError:
-        match = re.search(r"\{.*\}", cleaned, re.S)
+        match = re.search(r"[\[{].*[\]}]", cleaned, re.S)
         try:
             data = json.loads(match.group(0)) if match else None
         except json.JSONDecodeError:
             data = None
-    if not isinstance(data, dict):
+    if not isinstance(data, (dict, list)):
         raise AIError(f"AI повернув не JSON: {text[:200]}")
     return data
 
 
-def ask_json(system: str, prompt: str) -> dict:
+def ask_json(system: str, prompt: str) -> dict | list:
     if config.AI_PROVIDER == "claude":
         return _parse_json(_ask_claude(system, prompt))
     return _parse_json(_ask_gemini(system, prompt))
@@ -194,9 +194,12 @@ def select_news(items: list[NewsItem], recent: list[str], limit: int) -> list[tu
     )
     data = ask_json(prompts.SELECT_SYSTEM, prompt)
 
+    # легші моделі інколи повертають одразу список замість {"selected": [...]}
+    entries = data.get("selected") if isinstance(data, dict) else data
+
     by_id = {item.id: item for item in items}
     chosen, used = [], set()
-    for entry in data.get("selected") or []:
+    for entry in entries or []:
         if not isinstance(entry, dict):
             continue
         try:
@@ -217,6 +220,8 @@ def write_post(item: NewsItem, article_text: str) -> Post | None:
     """Пише пост. Повертає None, якщо в статті замало інформації."""
     prompt = prompts.WRITE_PROMPT.format(source=item.source, title=item.title, text=article_text)
     data = ask_json(prompts.WRITE_SYSTEM, prompt)
+    if isinstance(data, list):  # відповідь загорнута в список — беремо перший об'єкт
+        data = next((entry for entry in data if isinstance(entry, dict)), {})
     if data.get("enough_info") is False:
         return None
     post = Post(
