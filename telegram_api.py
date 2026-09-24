@@ -34,6 +34,16 @@ def _call(token: str, method: str, data: dict, files: dict | None = None) -> dic
     raise TelegramError("Telegram не відповів")
 
 
+def get_me(token: str) -> dict:
+    """Інформація про самого бота (id, username). Заодно перевіряє токен."""
+    return _call(token, "getMe", data={})
+
+
+def get_chat_member(token: str, chat_id: str, user_id: int) -> dict:
+    """Статус і права учасника в каналі (для бота-адміна — чи може він публікувати)."""
+    return _call(token, "getChatMember", data={"chat_id": chat_id, "user_id": user_id})
+
+
 def send_photo(token: str, chat_id: str, photo: bytes, caption: str, parse_mode: str | None = "HTML") -> int:
     data = {"chat_id": chat_id, "caption": caption}
     if parse_mode:

@@ -44,8 +44,24 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           DRY_RUN: ${{ inputs.dry_run && '1' || '0' }}
+          # Назви, які помилково додали у Variables замість Secrets (лише назви, без значень)
+          NAMES_IN_VARIABLES: >-
+            ${{ vars.TELEGRAM_BOT_TOKEN && 'TELEGRAM_BOT_TOKEN' || '' }}
+            ${{ vars.TELEGRAM_CHANNEL && 'TELEGRAM_CHANNEL' || '' }}
+            ${{ vars.GEMINI_API_KEY && 'GEMINI_API_KEY' || '' }}
           PYTHONUNBUFFERED: "1"
         run: python main.py
+
+      # Лише для тестового запуску: картинки й тексти постів можна скачати
+      # внизу сторінки запуску, у блоці Artifacts → preview
+      - name: Зберегти приклади постів
+        if: always() && inputs.dry_run
+        uses: actions/upload-artifact@v7
+        with:
+          name: preview
+          path: preview/
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Зберегти список опублікованих новин
         if: always()

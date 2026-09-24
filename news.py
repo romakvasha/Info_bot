@@ -116,6 +116,21 @@ def collect(feeds: dict, known_urls: set, known_titles: set,
     return items
 
 
+def pick_candidates(items: list[NewsItem], limit: int) -> list[NewsItem]:
+    """Бере новини з усіх джерел по черзі, щоб стрічки, які пишуть багато,
+    не витіснили менші, але цікаві джерела."""
+    queues: dict[str, list[NewsItem]] = {}
+    for item in items:  # items уже відсортовані від найсвіжіших
+        queues.setdefault(item.source, []).append(item)
+    picked: list[NewsItem] = []
+    while len(picked) < limit and any(queues.values()):
+        for queue in queues.values():
+            if queue and len(picked) < limit:
+                picked.append(queue.pop(0))
+    picked.sort(key=lambda item: item.published, reverse=True)
+    return picked
+
+
 def _simple_extract(page: str) -> str:
     """Запасний варіант, якщо trafilatura не встановлена: беремо абзаци <p>."""
     page = re.sub(r"(?is)<(script|style|noscript)[^>]*>.*?</\1>", " ", page)

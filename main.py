@@ -32,9 +32,39 @@ SETUP_HINTS = {
     "unauthorized": "Перевір секрет TELEGRAM_BOT_TOKEN: схоже, токен бота неправильний.",
     "chat not found": "Перевір секрет TELEGRAM_CHANNEL: потрібна адреса публічного каналу з @, наприклад @novyny_polshcha.",
     "not a member": "Додай бота адміністратором каналу з правом публікувати повідомлення.",
+    "inaccessible": "Додай бота адміністратором каналу з правом публікувати повідомлення.",
     "rights": "Дай ботові в адмінці каналу право публікувати повідомлення.",
     "kicked": "Бота видалили з каналу — додай його знову адміністратором.",
 }
+
+
+def setup_hint(exc: Exception) -> str | None:
+    text = str(exc).lower()
+    for marker, hint in SETUP_HINTS.items():
+        if marker in text:
+            return hint
+    return None
+
+
+def check_telegram(token: str, channel: str) -> bool:
+    """Перевіряє токен і права бота в каналі, нічого не публікуючи."""
+    try:
+        bot = telegram_api.get_me(token)
+        member = telegram_api.get_chat_member(token, channel, bot["id"])
+    except telegram_api.TelegramError as exc:
+        log.error("❌ Telegram: %s", exc)
+        hint = setup_hint(exc)
+        if hint:
+            log.error("   💡 %s", hint)
+        return False
+
+    name, status = bot.get("username", "?"), member.get("status")
+    if status == "creator" or (status == "administrator" and member.get("can_post_messages")):
+        log.info("✓ Telegram: бот @%s може публікувати в %s", name, channel)
+        return True
+    log.error("❌ Telegram: бот @%s не може публікувати в %s (статус: %s)", name, channel, status)
+    log.error("   💡 %s", SETUP_HINTS["rights" if status == "administrator" else "not a member"])
+    return False
 
 
 def esc(text: str) -> str:
@@ -105,13 +135,33 @@ def main() -> int:
     dry_run = args.dry_run or os.environ.get("DRY_RUN", "").strip().lower() in ("1", "true")
     token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
     channel = normalize_channel(os.environ.get("TELEGRAM_CHANNEL", ""))
-    if not dry_run and (not token or not channel):
-        log.error("❌ Не задано секрети TELEGRAM_BOT_TOKEN і/або TELEGRAM_CHANNEL.")
-        return 1
 
     mode = "тестовий запуск без публікації" if dry_run else "запуск"
     log.info("🤖 Новини Польща: %s, AI — %s", mode, config.AI_PROVIDER)
+    for name in os.environ.get("NAMES_IN_VARIABLES", "").split():
+        log.warning("⚠️  %s додано у Variables, а бот читає лише Secrets. Створи його у вкладці "
+                    "Secrets (Settings → Secrets and variables → Actions), а з Variables видали.", name)
 
+    # Telegram перевіряємо на самому початку, щоб не витрачати ліміт AI даремно
+    telegram_ok = True
+    if token and channel:
+        telegram_ok = check_telegram(token, channel)
+        if not telegram_ok and not dry_run:
+            return 1
+    elif dry_run:
+        log.warning("⚠️  Не задано секрети TELEGRAM_BOT_TOKEN і/або TELEGRAM_CHANNEL, Telegram не перевірено.")
+    else:
+        log.error("❌ Не задано секрети TELEGRAM_BOT_TOKEN і/або TELEGRAM_CHANNEL.")
+        return 1
+
+    code = run(dry_run, token, channel)
+    if not telegram_ok:  # у тестовому запуску решту перевірили, але Telegram треба виправити
+        log.error("❗ Telegram налаштовано неправильно, підказка — на початку лога.")
+        return 1
+    return code
+
+
+def run(dry_run: bool, token: str, channel: str) -> int:
     state = storage.load()
     items = news.collect(
         config.RSS_FEEDS,
@@ -125,7 +175,7 @@ def main() -> int:
         log.info("Свіжих новин немає. До наступного запуску!")
         return 0
 
-    candidates = items[: config.MAX_CANDIDATES]
+    candidates = news.pick_candidates(items, config.MAX_CANDIDATES)
     log.info("🔎 AI відбирає найважливіше з %d новин…", len(candidates))
     try:
         selected = ai.select_news(candidates, storage.recent_headlines(state), config.POSTS_PER_RUN)
@@ -171,10 +221,10 @@ def main() -> int:
             publish(token, channel, image, caption)
         except telegram_api.TelegramError as exc:
             log.error("   ❌ Telegram: %s", exc)
-            for marker, hint in SETUP_HINTS.items():
-                if marker in str(exc).lower():
-                    log.error("   💡 %s", hint)
-                    return 1  # проблема з налаштуваннями, далі пробувати немає сенсу
+            hint = setup_hint(exc)
+            if hint:
+                log.error("   💡 %s", hint)
+                return 1  # проблема з налаштуваннями, далі пробувати немає сенсу
             failed += 1
             storage.remember(state, item.link, item.title, "failed", topic=topic)
             storage.save(state)
