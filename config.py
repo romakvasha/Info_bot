@@ -15,7 +15,8 @@ AI_PROVIDER = "gemini"
 GEMINI_MODELS = [
     "gemini-flash-latest",       # остання версія Flash (оновлюється сама)
     "gemini-flash-lite-latest",  # легша версія з більшими лімітами
-    "gemini-2.5-flash",          # запасний варіант
+    "gemini-3.8-flash",          # запасний варіант: її радить сам Google, бо gemini-2.5-flash
+                                 # з вересня 2026 недоступна новим користувачам (HTTP 404)
 ]
 
 CLAUDE_MODEL = "claude-haiku-4-5"

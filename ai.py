@@ -43,6 +43,10 @@ class _DailyLimit(Exception):
     """Денний ліміт моделі вичерпано: сьогодні її вже не пробуємо."""
 
 
+class _BadJSON(AIError):
+    """AI відповів, але не валідним JSON (наприклад, обірваним)."""
+
+
 @dataclass
 class Post:
     headline: str
@@ -71,16 +75,23 @@ def _gemini_once(model: str, key: str, system: str, prompt: str) -> str:
     if resp.status_code in (429, 500, 502, 503, 504):
         raise _TryLater(f"HTTP {resp.status_code}")
     if resp.status_code != 200:
-        raise AIError(f"HTTP {resp.status_code}: {resp.text[:400]}")
+        try:
+            message = resp.json()["error"]["message"]
+        except (ValueError, KeyError, TypeError):
+            message = resp.text
+        raise AIError(f"HTTP {resp.status_code}: {message[:300]}")
 
     data = resp.json()
     candidates = data.get("candidates") or []
     if not candidates:
         raise AIError(f"порожня відповідь ({data.get('promptFeedback')})")
+    finish = candidates[0].get("finishReason")
+    if finish == "MAX_TOKENS":  # відповідь обірвалася на півслові — JSON буде зіпсований
+        raise AIError("відповідь обірвалася (MAX_TOKENS)")
     parts = (candidates[0].get("content") or {}).get("parts") or []
     text = "".join(p.get("text", "") for p in parts if not p.get("thought"))
     if not text.strip():
-        raise AIError(f"відповідь без тексту (finishReason={candidates[0].get('finishReason')})")
+        raise AIError(f"відповідь без тексту (finishReason={finish})")
     return text
 
 
@@ -160,14 +171,17 @@ def _parse_json(text: str) -> dict | list:
         except json.JSONDecodeError:
             data = None
     if not isinstance(data, (dict, list)):
-        raise AIError(f"AI повернув не JSON: {text[:200]}")
+        raise _BadJSON(f"AI повернув не JSON ({len(text)} символів): {text[:150]} … {text[-80:]}")
     return data
 
 
 def ask_json(system: str, prompt: str) -> dict | list:
-    if config.AI_PROVIDER == "claude":
-        return _parse_json(_ask_claude(system, prompt))
-    return _parse_json(_ask_gemini(system, prompt))
+    ask = _ask_claude if config.AI_PROVIDER == "claude" else _ask_gemini
+    try:
+        return _parse_json(ask(system, prompt))
+    except _BadJSON as exc:  # зіпсована відповідь трапляється випадково — пробуємо ще раз
+        log.warning("   %s — пробую ще раз", exc)
+        return _parse_json(ask(system, prompt))
 
 
 def _clean(value) -> str:

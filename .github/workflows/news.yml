@@ -28,6 +28,10 @@ jobs:
     steps:
       - name: Завантажити код
         uses: actions/checkout@v6
+        with:
+          # найсвіжіший стан гілки, а не той, що був у момент запуску: якщо два запуски
+          # збіглися й другий чекав у черзі, він має побачити оновлений data/posted.json
+          ref: ${{ github.ref }}
 
       - name: Встановити Python
         uses: actions/setup-python@v6
