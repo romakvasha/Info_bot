@@ -42,9 +42,17 @@ def known_title_keys(state: dict) -> set[str]:
 
 
 def recent_headlines(state: dict, limit: int = 40) -> list[str]:
-    """Останні опубліковані заголовки — щоб AI не повторював ту саму тему."""
+    """Останні опубліковані заголовки — щоб AI не повторював ту саму тему.
+    Разом з оригінальним заголовком: польське з польським AI порівнює надійніше."""
     published = [e for e in state["posted"] if e.get("status") == "posted"]
-    return [e.get("headline") or e.get("title", "") for e in published[-limit:]]
+    lines = []
+    for entry in published[-limit:]:
+        headline, title = entry.get("headline", ""), entry.get("title", "")
+        if headline and title:
+            lines.append(f"{headline} (оригінал: {title})")
+        else:
+            lines.append(headline or title)
+    return lines
 
 
 def posted_today(state: dict, tz) -> int:

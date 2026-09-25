@@ -108,7 +108,10 @@ def _ask_gemini(system: str, prompt: str) -> str:
             time.sleep(RETRY_PAUSE)
         for model in list(models):
             try:
-                return _gemini_once(model, key, system, prompt)
+                text = _gemini_once(model, key, system, prompt)
+                if problems:  # щоб у лозі було видно, яка модель зрештою відповіла
+                    log.info("   ✓ відповіла %s", model)
+                return text
             except _TryLater as exc:
                 temporary = True
                 problems.append(f"{model}: {exc}")
