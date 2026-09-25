@@ -26,6 +26,33 @@
    "topic": "work",
    "status": "posted",
    "at": "2026-09-24T23:22:25+00:00"
+  },
+  {
+   "url": "https://www.bankier.pl/wiadomosc/Panstwo-zabierze-ze-skladek-wiecej-niz-z-podatkow-Rekordowe-660-miliardow-9202473.html",
+   "key": "bankier.pl/wiadomosc/Panstwo-zabierze-ze-skladek-wiecej-niz-z-podatkow-Rekordowe-660-miliardow-9202473.html",
+   "title": "Państwo zabierze ze składek więcej niż z podatków. Rekordowe 660 miliardów",
+   "headline": "Обов'язкові внески в Польщі перевищать податкові надходження",
+   "topic": "money",
+   "status": "posted",
+   "at": "2026-09-25T06:43:20+00:00"
+  },
+  {
+   "url": "https://www.bankier.pl/wiadomosc/Ukrainiec-zamordowal-polskiego-ksiedza-Zelenski-potepil-atak-w-Jaroslawiu-9202397.html",
+   "key": "bankier.pl/wiadomosc/Ukrainiec-zamordowal-polskiego-ksiedza-Zelenski-potepil-atak-w-Jaroslawiu-9202397.html",
+   "title": "Ukrainiec zamordował polskiego księdza. Zełenski potępił atak w Jarosławiu",
+   "headline": "Напад у Ярославі: загинула людина",
+   "topic": "ukraine",
+   "status": "posted",
+   "at": "2026-09-25T06:43:50+00:00"
+  },
+  {
+   "url": "https://www.bankier.pl/wiadomosc/Dane-pacjentow-zagrozone-CBZC-bada-cyberatak-na-firme-Qbusoft-9202430.html",
+   "key": "bankier.pl/wiadomosc/Dane-pacjentow-zagrozone-CBZC-bada-cyberatak-na-firme-Qbusoft-9202430.html",
+   "title": "Dane pacjentów zagrożone. CBZC bada cyberatak na firmę Qbusoft",
+   "headline": "Кібератака на розробника медичного софту в Польщі",
+   "topic": "health",
+   "status": "posted",
+   "at": "2026-09-25T06:44:57+00:00"
   }
  ]
 }
