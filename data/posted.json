@@ -233,6 +233,33 @@
    "topic": "transport",
    "status": "posted",
    "at": "2026-09-28T18:36:33+00:00"
+  },
+  {
+   "url": "https://www.bankier.pl/wiadomosc/Niebezpiecznie-blisko-polskiej-granicy-Kolejny-rosyjski-atak-9203956.html",
+   "key": "bankier.pl/wiadomosc/Niebezpiecznie-blisko-polskiej-granicy-Kolejny-rosyjski-atak-9203956.html",
+   "title": "Niebezpiecznie blisko polskiej granicy. Kolejny rosyjski atak",
+   "headline": "Російський дрон впав поблизу кордону з Польщею",
+   "topic": "safety",
+   "status": "posted",
+   "at": "2026-09-28T23:49:23+00:00"
+  },
+  {
+   "url": "https://www.rmf24.pl/fakty/polska/news-ponad-100-aptek-w-polsce-stracilo-zezwolenia-leki-wywozono-z,nIdn,1019563",
+   "key": "rmf24.pl/fakty/polska/news-ponad-100-aptek-w-polsce-stracilo-zezwolenia-leki-wywozono-z,nIdn,1019563",
+   "title": "Ponad 100 aptek w Polsce straciło zezwolenia. Leki wywożono za granicę",
+   "headline": "Понад 100 аптек у Польщі втратили ліцензії через нелегальне вивезення ліків",
+   "topic": "health",
+   "status": "posted",
+   "at": "2026-09-28T23:49:49+00:00"
+  },
+  {
+   "url": "https://www.bankier.pl/wiadomosc/Koniec-groszowek-coraz-blizej-Padla-konkretna-propozycja-9203680.html",
+   "key": "bankier.pl/wiadomosc/Koniec-groszowek-coraz-blizej-Padla-konkretna-propozycja-9203680.html",
+   "title": "Koniec groszówek coraz bliżej? Padła konkretna propozycja",
+   "headline": "У Польщі обговорюють виведення з обігу дрібних монет",
+   "topic": "money",
+   "status": "posted",
+   "at": "2026-09-28T23:50:16+00:00"
   }
  ]
 }
