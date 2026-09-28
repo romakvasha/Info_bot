@@ -206,6 +206,33 @@
    "topic": "life",
    "status": "posted",
    "at": "2026-09-28T10:53:32+00:00"
+  },
+  {
+   "url": "https://www.polsatnews.pl/wiadomosc/2026-09-28/dron-uderzyl-przy-granicy-zagrozenie-eskaluje-bedziemy-w-gotowosci/",
+   "key": "polsatnews.pl/wiadomosc/2026-09-28/dron-uderzyl-przy-granicy-zagrozenie-eskaluje-bedziemy-w-gotowosci",
+   "title": "Dron uderzył przy granicy. \"Zagrożenie eskaluje, będziemy w gotowości\"",
+   "headline": "",
+   "topic": "safety",
+   "status": "failed",
+   "at": "2026-09-28T18:35:53+00:00"
+  },
+  {
+   "url": "https://www.bankier.pl/wiadomosc/Spor-o-ceny-paliw-Tusk-apeluje-do-prezydenta-o-podpisanie-ustawy-9204004.html",
+   "key": "bankier.pl/wiadomosc/Spor-o-ceny-paliw-Tusk-apeluje-do-prezydenta-o-podpisanie-ustawy-9204004.html",
+   "title": "Spór o ceny paliw. Tusk apeluje do prezydenta o podpisanie ustawy",
+   "headline": "Прем'єр Польщі закликає підписати закон про зниження цін на паливо",
+   "topic": "money",
+   "status": "posted",
+   "at": "2026-09-28T18:36:01+00:00"
+  },
+  {
+   "url": "https://www.polsatnews.pl/wiadomosc/2026-09-28/nadodrzanski-oddzial-sg-od-wprowadzenia-kontroli-na-granicy-z-niemcami-900-obcokrajowcow-z-odmowa-wjazdu/",
+   "key": "polsatnews.pl/wiadomosc/2026-09-28/nadodrzanski-oddzial-sg-od-wprowadzenia-kontroli-na-granicy-z-niemcami-900-obcokrajowcow-z-odmowa-wjazdu",
+   "title": "Kontrole na granicy z Niemcami. Zatrzymano setki obcokrajowców",
+   "headline": "Контроль на кордоні з Німеччиною: не пустили сотні іноземців",
+   "topic": "transport",
+   "status": "posted",
+   "at": "2026-09-28T18:36:33+00:00"
   }
  ]
 }
