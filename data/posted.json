@@ -296,6 +296,33 @@
    "topic": "money",
    "status": "posted",
    "at": "2026-09-29T16:54:04+00:00"
+  },
+  {
+   "url": "https://www.bankier.pl/wiadomosc/Cyberatak-na-systemy-Fakturowni-Wyciekly-hasla-numery-rachunkow-i-starsze-faktury-9204631.html",
+   "key": "bankier.pl/wiadomosc/Cyberatak-na-systemy-Fakturowni-Wyciekly-hasla-numery-rachunkow-i-starsze-faktury-9204631.html",
+   "title": "Cyberatak na systemy Fakturowni. Wyciekły hasła, numery rachunków i starsze faktury. Co z KSeF?",
+   "headline": "Кібератака на систему Fakturownia: витік даних користувачів",
+   "topic": "life",
+   "status": "posted",
+   "at": "2026-09-29T21:24:32+00:00"
+  },
+  {
+   "url": "https://www.bankier.pl/wiadomosc/Rekordowy-deficyt-zatwierdzony-Budzet-na-2027-rok-z-282-mld-zl-na-minusie-9204312.html",
+   "key": "bankier.pl/wiadomosc/Rekordowy-deficyt-zatwierdzony-Budzet-na-2027-rok-z-282-mld-zl-na-minusie-9204312.html",
+   "title": "Rekordowy deficyt zatwierdzony. Budżet na 2027 rok z 282 mld zł na minusie",
+   "headline": "",
+   "topic": "money",
+   "status": "failed",
+   "at": "2026-09-29T21:24:55+00:00"
+  },
+  {
+   "url": "https://www.rmf24.pl/regiony/warszawa/news-uszkodzony-kabel-sparalizowal-ruch-pociagow-na-mazowszu,nIdn,1019713",
+   "key": "rmf24.pl/regiony/warszawa/news-uszkodzony-kabel-sparalizowal-ruch-pociagow-na-mazowszu,nIdn,1019713",
+   "title": "Uszkodzony kabel sparaliżował ruch pociągów na Mazowszu",
+   "headline": "У Мазовецькому воєводстві через пошкодження кабелю затримуються потяги",
+   "topic": "transport",
+   "status": "posted",
+   "at": "2026-09-29T21:24:59+00:00"
   }
  ]
 }
