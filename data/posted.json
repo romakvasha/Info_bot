@@ -413,6 +413,33 @@
    "topic": "legalization",
    "status": "posted",
    "at": "2026-10-01T22:39:58+00:00"
+  },
+  {
+   "url": "https://www.bankier.pl/wiadomosc/Polska-przygotowuje-sie-na-wojne-MON-pracuje-nad-nowa-ustawa-9206388.html",
+   "key": "bankier.pl/wiadomosc/Polska-przygotowuje-sie-na-wojne-MON-pracuje-nad-nowa-ustawa-9206388.html",
+   "title": "Polska przygotowuje się na wojnę. MON pracuje nad nową ustawą",
+   "headline": "",
+   "topic": "safety",
+   "status": "failed",
+   "at": "2026-10-02T10:29:09+00:00"
+  },
+  {
+   "url": "https://www.rmf24.pl/fakty/ekonomia/news-obnizki-cen-paliw-coraz-blizej-w-dzienniku-ustaw-opublikowan,nIdn,1020124",
+   "key": "rmf24.pl/fakty/ekonomia/news-obnizki-cen-paliw-coraz-blizej-w-dzienniku-ustaw-opublikowan,nIdn,1020124",
+   "title": "Obniżki cen paliw coraz bliżej. W Dzienniku Ustaw opublikowano ważne rozporządzenie",
+   "headline": "У Польщі знизять податки на паливо",
+   "topic": "money",
+   "status": "posted",
+   "at": "2026-10-02T10:29:13+00:00"
+  },
+  {
+   "url": "https://www.rmf24.pl/fakty/polska/news-polska-przedluza-kontrole-na-granicach-z-niemcami-i-litwa-zn,nIdn,1020090",
+   "key": "rmf24.pl/fakty/polska/news-polska-przedluza-kontrole-na-granicach-z-niemcami-i-litwa-zn,nIdn,1020090",
+   "title": "Polska przedłuża kontrole na granicach z Niemcami i Litwą. Znamy nowy termin",
+   "headline": "Польща продовжує контролювати кордони з Німеччиною та Литвою",
+   "topic": "transport",
+   "status": "posted",
+   "at": "2026-10-02T10:29:38+00:00"
   }
  ]
 }
