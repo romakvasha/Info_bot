@@ -539,6 +539,51 @@
    "topic": "safety",
    "status": "posted",
    "at": "2026-10-03T14:43:47+00:00"
+  },
+  {
+   "url": "https://www.bankier.pl/wiadomosc/Wyciekly-dane-z-serwisu-turystycznego-Wakacje-pl-9207133.html",
+   "key": "bankier.pl/wiadomosc/Wyciekly-dane-z-serwisu-turystycznego-Wakacje-pl-9207133.html",
+   "title": "Wielki wyciek ze znanego serwisu turystycznego. Wakacje.pl zaleca klientom zastrzeżenie PESEL-u",
+   "headline": "Витік даних у Wakacje.pl: клієнтам радять застерегти PESEL",
+   "topic": "safety",
+   "status": "posted",
+   "at": "2026-10-03T22:08:28+00:00"
+  },
+  {
+   "url": "https://www.polsatnews.pl/wiadomosc/2026-10-03/czeski-przewoznik-zawiesza-polaczenie-kolejowe-z-polski-jedno-z-najdluzszych-w-europie/",
+   "key": "polsatnews.pl/wiadomosc/2026-10-03/czeski-przewoznik-zawiesza-polaczenie-kolejowe-z-polski-jedno-z-najdluzszych-w-europie",
+   "title": "Czeski przewoźnik zawiesza połączenie kolejowe z Polski. Jedno z najdłuższych w Europie",
+   "headline": "Чеський перевізник скасовує потяг Перемишль-Прага-Франкфурт",
+   "topic": "transport",
+   "status": "posted",
+   "at": "2026-10-03T22:08:51+00:00"
+  },
+  {
+   "url": "https://www.polsatnews.pl/wiadomosc/2026-10-03/ukraincy-w-polsce-odpowiadaja-za-24-proc-pkb-wiekszosc-z-nich-chce-zostac/",
+   "key": "polsatnews.pl/wiadomosc/2026-10-03/ukraincy-w-polsce-odpowiadaja-za-24-proc-pkb-wiekszosc-z-nich-chce-zostac",
+   "title": "Ukraińcy w Polsce odpowiadają za 2,4 proc. PKB. Większość z nich chce zostać",
+   "headline": "Вплив українців на польську економіку зріс до 2,4%",
+   "topic": "ukraine",
+   "status": "posted",
+   "at": "2026-10-03T22:09:16+00:00"
+  },
+  {
+   "url": "https://www.polsatnews.pl/wiadomosc/2026-10-03/dyplomaci-wyjada-z-kijowa-rosja-ostrzega-ukraina-dementuje/",
+   "key": "polsatnews.pl/wiadomosc/2026-10-03/dyplomaci-wyjada-z-kijowa-rosja-ostrzega-ukraina-dementuje",
+   "title": "Rosja \"ostrzega\" dyplomatów w Ukrainie. Mają ewakuować się z Kijowa",
+   "headline": "Росія закликає іноземних дипломатів залишити Київ",
+   "topic": "ukraine",
+   "status": "posted",
+   "at": "2026-10-03T22:09:39+00:00"
+  },
+  {
+   "url": "https://www.polsatnews.pl/wiadomosc/2026-10-03/ostrzezenia-przed-zamgleniami-dla-wiekszosci-wojewodztw-ostrzezenia-imgw/",
+   "key": "polsatnews.pl/wiadomosc/2026-10-03/ostrzezenia-przed-zamgleniami-dla-wiekszosci-wojewodztw-ostrzezenia-imgw",
+   "title": "Zacznie się wieczorem. Ostrzeżenia dla dziewięciu województw",
+   "headline": "Попередження про туман у дев'яти воєводствах",
+   "topic": "safety",
+   "status": "posted",
+   "at": "2026-10-03T22:10:02+00:00"
   }
  ]
 }
