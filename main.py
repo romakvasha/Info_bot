@@ -20,6 +20,7 @@ import ai
 import card
 import config
 import news
+import rates
 import storage
 import telegram_api
 
@@ -154,11 +155,47 @@ def main() -> int:
         log.error("❌ Не задано секрети TELEGRAM_BOT_TOKEN і/або TELEGRAM_CHANNEL.")
         return 1
 
+    post_rates_if_due(dry_run, token, channel)
     code = run(dry_run, token, channel)
     if not telegram_ok:  # у тестовому запуску решту перевірили, але Telegram треба виправити
         log.error("❗ Telegram налаштовано неправильно, підказка — на початку лога.")
         return 1
     return code
+
+
+def post_rates_if_due(dry_run: bool, token: str, channel: str) -> None:
+    """Раз на день, у перший запуск після RATES_HOUR, публікує курс валют.
+    У тестовому запуску курс показується в лозі завжди, щоб його можна було перевірити."""
+    if not config.RATES_ENABLED:
+        return
+    now = datetime.now(WARSAW)
+    state = storage.load()
+    if state.get("rates_date") == now.date().isoformat():
+        return  # сьогодні курс уже був
+    if now.hour < config.RATES_HOUR and not dry_run:
+        return
+
+    try:
+        tables = rates.fetch_tables()
+    except rates.RatesError as exc:
+        log.warning("⚠️  Курс валют: %s. Спробую наступного запуску.", exc)
+        return
+    link = ""
+    if config.ADD_CHANNEL_LINK and channel.startswith("@"):
+        link = f'<a href="https://t.me/{channel[1:]}">{esc(config.CHANNEL_TITLE)}</a>'
+    message = rates.build_message(tables, link)
+
+    if dry_run:
+        log.info("💱 Курс валют (тест, не публікую):\n%s\n", message)
+        return
+    try:
+        telegram_api.send_message(token, channel, message)
+    except telegram_api.TelegramError as exc:
+        log.error("❌ Курс валют не опубліковано: %s", exc)
+        return
+    state["rates_date"] = now.date().isoformat()
+    storage.save(state)
+    log.info("💱 Опубліковано курс валют\n")
 
 
 def run(dry_run: bool, token: str, channel: str) -> int:
