@@ -39,6 +39,39 @@ ADD_CHANNEL_LINK = True          # додавати в кінці поста п�
 RATES_ENABLED = True
 RATES_HOUR = 14
 
+# ── Щоденний пост про легалізацію ───────────────────────────────────────
+# Раз на день, у перший запуск після LEGAL_HOUR (за Варшавою), бот публікує пост про
+# легалізацію: карта побиту, сталий побут, резидент ЄС, паспорт для іноземців, візи,
+# статус UKR. Спершу шукає свіжу новину за LEGAL_MAX_AGE_HOURS у всіх джерелах.
+# Якщо такої немає — бере ще не опубліковану статтю-інструкцію з архіву LEGAL_GUIDE_FEEDS
+# за LEGAL_GUIDE_MAX_AGE_DAYS. Якщо пост про легалізацію сьогодні вже вийшов, нічого не робить.
+LEGAL_ENABLED = True
+LEGAL_HOUR = 11
+LEGAL_MAX_AGE_HOURS = 72
+LEGAL_GUIDE_MAX_AGE_DAYS = 120
+
+# Джерела саме про іноземців: їхні новини завжди потрапляють до AI на відбір.
+LEGAL_FEEDS = {
+    "Ukrainian in Poland": "https://ukrainianinpoland.pl/feed/",
+}
+
+# Архів статей-інструкцій: кілька сторінок RSS (WordPress віддає старіші статті через ?paged=N)
+LEGAL_GUIDE_FEEDS = {
+    "Ukrainian in Poland": [
+        "https://ukrainianinpoland.pl/feed/",
+        "https://ukrainianinpoland.pl/feed/?paged=2",
+        "https://ukrainianinpoland.pl/feed/?paged=3",
+    ],
+}
+
+# З інших джерел до AI потрапляють лише новини, де є одне з цих слів (у заголовку чи описі)
+LEGAL_KEYWORDS = [
+    "cudzoziem", "pobyt", "legaliz", "wiza", "wizy", "wizę", "wizow", "paszport", "obywatelstw",
+    "uchodźc", "migra", "imigra", "pesel", "zezwoleni", "udsc", "specustaw", "ochrony czasowej",
+    "ochrona czasowa", "rezydent", "foreigner", "residence", "visa", "migrant", "permit",
+    "легаліз", "побит", "віз", "паспорт", "іноземц", "мігра", "біженц", "громадянств", "дозвіл",
+]
+
 # ── Джерела ─────────────────────────────────────────────────────────────
 # Назва: адреса RSS. Якщо якесь джерело перестане працювати,
 # бот просто пропустить його й напише про це в лозі.

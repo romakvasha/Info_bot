@@ -55,12 +55,15 @@ def recent_headlines(state: dict, limit: int = 40) -> list[str]:
     return lines
 
 
-def posted_today(state: dict, tz) -> int:
-    """Скільки постів уже опубліковано сьогодні (день рахуємо за часовим поясом tz)."""
+def posted_today(state: dict, tz, topic: str = "") -> int:
+    """Скільки постів уже опубліковано сьогодні (день рахуємо за часовим поясом tz).
+    Якщо задано topic — лише постів на цю тему."""
     today = datetime.now(tz).date()
     count = 0
     for entry in state["posted"]:
         if entry.get("status") != "posted" or not entry.get("at"):
+            continue
+        if topic and entry.get("topic") != topic:
             continue
         try:
             count += datetime.fromisoformat(entry["at"]).astimezone(tz).date() == today

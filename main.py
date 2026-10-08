@@ -20,6 +20,7 @@ import ai
 import card
 import config
 import news
+import prompts
 import rates
 import storage
 import telegram_api
@@ -156,6 +157,8 @@ def main() -> int:
         return 1
 
     post_rates_if_due(dry_run, token, channel)
+    if post_legal_if_due(dry_run, token, channel):
+        return 1
     code = run(dry_run, token, channel)
     if not telegram_ok:  # у тестовому запуску решту перевірили, але Telegram треба виправити
         log.error("❗ Telegram налаштовано неправильно, підказка — на початку лога.")
@@ -199,6 +202,141 @@ def post_rates_if_due(dry_run: bool, token: str, channel: str) -> None:
     log.info("💱 Опубліковано курс валют\n")
 
 
+def process_item(item: news.NewsItem, topic: str, state: dict, number: int | str, dry_run: bool,
+                 token: str, channel: str, text: str = "", guide: bool = False) -> str:
+    """Пише пост, малює картку й публікує. Повертає: posted, skipped, failed,
+    unavailable (AI тимчасово недоступний) або setup (Telegram налаштовано неправильно)."""
+    if not text:
+        text = news.fetch_article_text(item.link)
+        if len(text) < 300:  # статтю не вдалося прочитати — працюємо з описом із RSS
+            text = "\n".join(part for part in (item.title, item.summary, text) if part)
+    try:
+        post = ai.write_post(item, text, guide=guide)
+    except ai.AIUnavailable as exc:
+        log.warning("   ⏸  AI зараз недоступний, спробую наступного запуску: %s", exc)
+        return "unavailable"
+    except ai.AIError as exc:
+        log.error("   ❌ AI не написав пост: %s", exc)
+        if not dry_run:  # позначаємо, щоб не пробувати те саме знову й знову
+            storage.remember(state, item.link, item.title, "failed", topic=topic)
+            storage.save(state)
+        return "failed"
+
+    if post is None:
+        log.info("   ⏭  Замало інформації для поста, пропускаю")
+        if not dry_run:
+            storage.remember(state, item.link, item.title, "skipped", topic=topic)
+            storage.save(state)
+        return "skipped"
+
+    caption = build_caption(post, item, topic, channel)
+    image = card.make_card(post.headline, topic, datetime.now(WARSAW))
+    if dry_run:
+        save_preview(number, image, caption)
+        return "posted"
+
+    try:
+        publish(token, channel, image, caption)
+    except telegram_api.TelegramError as exc:
+        log.error("   ❌ Telegram: %s", exc)
+        hint = setup_hint(exc)
+        if hint:
+            log.error("   💡 %s", hint)
+            return "setup"
+        storage.remember(state, item.link, item.title, "failed", topic=topic)
+        storage.save(state)
+        return "failed"
+
+    storage.remember(state, item.link, item.title, "posted", post.headline, topic)
+    storage.save(state)
+    log.info("   ✅ Опубліковано: %s", post.headline)
+    return "posted"
+
+
+LEGAL_TOPIC = "legalization"
+
+
+def post_legal_if_due(dry_run: bool, token: str, channel: str) -> int:
+    """Раз на день, у перший запуск після LEGAL_HOUR, публікує пост про легалізацію:
+    свіжу новину, а якщо такої немає — ще не опубліковану статтю-інструкцію з архіву.
+    У тестовому запуску працює в будь-яку годину. Повертає 1, якщо Telegram налаштовано неправильно."""
+    if not config.LEGAL_ENABLED:
+        return 0
+    now = datetime.now(WARSAW)
+    state = storage.load()
+    if storage.posted_today(state, WARSAW, topic=LEGAL_TOPIC):
+        return 0  # сьогодні про легалізацію вже писали
+    if now.hour < config.LEGAL_HOUR and not dry_run:
+        return 0
+    if storage.posted_today(state, WARSAW) >= config.MAX_POSTS_PER_DAY:
+        return 0
+
+    log.info("🪪 Пост про легалізацію: шукаю новини за %d год…", config.LEGAL_MAX_AGE_HOURS)
+    items = news.collect(
+        {**config.RSS_FEEDS, **config.LEGAL_FEEDS},
+        storage.known_url_keys(state),
+        storage.known_title_keys(state),
+        config.LEGAL_MAX_AGE_HOURS,
+        config.MAX_PER_FEED,
+        config.SKIP_URL_PARTS,
+    )
+    candidates = [item for item in items
+                  if item.source in config.LEGAL_FEEDS or news.mentions(item, config.LEGAL_KEYWORDS)]
+    candidates = news.pick_candidates(candidates, config.MAX_CANDIDATES)
+    selected = []
+    if candidates:
+        log.info("🔎 AI шукає важливе про легалізацію серед %d новин…", len(candidates))
+        try:
+            selected = ai.select_news(candidates, storage.recent_headlines(state), 1, prompts.LEGAL_SELECT_PROMPT)
+        except ai.AIUnavailable as exc:
+            log.warning("⏸  AI зараз недоступний, пост про легалізацію — наступного запуску: %s", exc)
+            return 0
+        except ai.AIError as exc:
+            log.error("❌ AI не зміг відібрати новини про легалізацію: %s", exc)
+            return 0
+
+    for item, _ in selected:
+        log.info("\n🪪 [%s] %s", item.source, item.title)
+        result = process_item(item, LEGAL_TOPIC, state, "legal", dry_run, token, channel)
+        if result == "setup":
+            return 1
+        if result == "unavailable" or (result == "posted" and not dry_run):
+            return 0
+        if result == "posted":  # тестовий запуск: покажемо ще й інструкцію
+            log.info("\n🧪 Тест: ось якою буде інструкція в день, коли новин про легалізацію немає")
+            break
+    else:
+        log.info("Свіжої новини про легалізацію немає — шукаю статтю-інструкцію в архіві")
+
+    guides = news.collect(
+        config.LEGAL_GUIDE_FEEDS,
+        storage.known_url_keys(state),
+        storage.known_title_keys(state),
+        config.LEGAL_GUIDE_MAX_AGE_DAYS * 24,
+        config.MAX_CANDIDATES,
+        config.SKIP_URL_PARTS,
+    )
+    if not guides:
+        log.warning("⚠️  Пост про легалізацію сьогодні не вийшов: в архіві немає нових статей")
+        return 0
+    log.info("🔎 AI вибирає інструкцію серед %d статей…", len(guides))
+    try:
+        chosen = ai.select_news(guides[:config.MAX_CANDIDATES], storage.recent_headlines(state), 1,
+                                prompts.LEGAL_GUIDE_SELECT_PROMPT)
+    except ai.AIUnavailable as exc:
+        log.warning("⏸  AI зараз недоступний, пост про легалізацію — наступного запуску: %s", exc)
+        return 0
+    except ai.AIError as exc:
+        log.error("❌ AI не зміг вибрати інструкцію: %s", exc)
+        return 0
+    for item, _ in chosen:
+        log.info("\n🪪 [%s] %s", item.source, item.title)
+        result = process_item(item, LEGAL_TOPIC, state, "legal-guide", dry_run, token, channel, guide=True)
+        return 1 if result == "setup" else 0
+    log.warning("⚠️  Пост про легалізацію сьогодні не вийшов: AI не знайшов актуальної інструкції")
+    return 0
+
+
 def run(dry_run: bool, token: str, channel: str) -> int:
     state = storage.load()
     today = storage.posted_today(state, WARSAW)
@@ -237,56 +375,14 @@ def run(dry_run: bool, token: str, channel: str) -> int:
     published = failed = 0
     for number, (item, topic) in enumerate(selected, start=1):
         log.info("\n📰 %d/%d [%s] %s", number, len(selected), item.source, item.title)
-        text = news.fetch_article_text(item.link)
-        if len(text) < 300:  # статтю не вдалося прочитати — працюємо з описом із RSS
-            text = "\n".join(part for part in (item.title, item.summary, text) if part)
-        try:
-            post = ai.write_post(item, text)
-        except ai.AIUnavailable as exc:
-            # новину не позначаємо: наступного запуску AI зможе написати пост про неї
-            log.warning("   ⏸  AI зараз недоступний, решту новин лишаю на наступний запуск: %s", exc)
-            break
-        except ai.AIError as exc:
-            log.error("   ❌ AI не написав пост: %s", exc)
-            failed += 1
-            if not dry_run:  # позначаємо, щоб не пробувати ту саму новину знову й знову
-                storage.remember(state, item.link, item.title, "failed", topic=topic)
-                storage.save(state)
-            continue
-
-        if post is None:
-            log.info("   ⏭  Замало інформації для поста, пропускаю")
-            if not dry_run:
-                storage.remember(state, item.link, item.title, "skipped", topic=topic)
-                storage.save(state)
-            continue
-
-        caption = build_caption(post, item, topic, channel)
-        image = card.make_card(post.headline, topic, datetime.now(WARSAW))
-
-        if dry_run:
-            save_preview(number, image, caption)
-            published += 1
-            continue
-
-        try:
-            publish(token, channel, image, caption)
-        except telegram_api.TelegramError as exc:
-            log.error("   ❌ Telegram: %s", exc)
-            hint = setup_hint(exc)
-            if hint:
-                log.error("   💡 %s", hint)
-                return 1  # проблема з налаштуваннями, далі пробувати немає сенсу
-            failed += 1
-            storage.remember(state, item.link, item.title, "failed", topic=topic)
-            storage.save(state)
-            continue
-
-        storage.remember(state, item.link, item.title, "posted", post.headline, topic)
-        storage.save(state)
-        published += 1
-        log.info("   ✅ Опубліковано: %s", post.headline)
-        if number < len(selected):
+        result = process_item(item, topic, state, number, dry_run, token, channel)
+        if result == "unavailable":
+            break  # решту новин не позначаємо: наступного запуску AI зможе написати пости про них
+        if result == "setup":
+            return 1  # проблема з налаштуваннями, далі пробувати немає сенсу
+        published += result == "posted"
+        failed += result == "failed"
+        if result == "posted" and not dry_run and number < len(selected):
             time.sleep(config.PAUSE_BETWEEN_POSTS)
 
     log.info("\nГотово: опубліковано %d, помилок %d.", published, failed)

@@ -9,6 +9,7 @@ import os
 import re
 import time
 from dataclasses import dataclass
+from datetime import datetime
 from zoneinfo import ZoneInfo
 
 import requests
@@ -173,6 +174,11 @@ def _parse_json(text: str) -> dict | list:
             data = json.loads(match.group(0)) if match else None
         except json.JSONDecodeError:
             data = None
+    if data is None and match:  # зайва дужка чи текст після JSON: беремо перший цілий об'єкт
+        try:
+            data, _ = json.JSONDecoder().raw_decode(match.group(0))
+        except json.JSONDecodeError:
+            data = None
     if not isinstance(data, (dict, list)):
         raise _BadJSON(f"AI повернув не JSON ({len(text)} символів): {text[:150]} … {text[-80:]}")
     return data
@@ -193,8 +199,9 @@ def _clean(value) -> str:
     return text.strip(" \"«»")
 
 
-def select_news(items: list[NewsItem], recent: list[str], limit: int) -> list[tuple[NewsItem, str]]:
-    """Повертає список (новина, тема), від найважливішої."""
+def select_news(items: list[NewsItem], recent: list[str], limit: int,
+                template: str = prompts.SELECT_PROMPT) -> list[tuple[NewsItem, str]]:
+    """Повертає список (новина, тема), від найважливішої. template — текст завдання для AI."""
     lines = []
     for item in items:
         when = item.published.astimezone(WARSAW).strftime("%d.%m %H:%M")
@@ -203,11 +210,12 @@ def select_news(items: list[NewsItem], recent: list[str], limit: int) -> list[tu
             line += f"\n    {item.summary[:280]}"
         lines.append(line)
 
-    prompt = prompts.SELECT_PROMPT.format(
+    prompt = template.format(
         limit=limit,
         topics=", ".join(config.TOPICS),
         recent="\n".join(f"- {title}" for title in recent) or "(поки нічого)",
         listing="\n".join(lines),
+        today=datetime.now(WARSAW).strftime("%d.%m.%Y"),
     )
     data = ask_json(prompts.SELECT_SYSTEM, prompt)
 
@@ -233,9 +241,11 @@ def select_news(items: list[NewsItem], recent: list[str], limit: int) -> list[tu
     return chosen
 
 
-def write_post(item: NewsItem, article_text: str) -> Post | None:
-    """Пише пост. Повертає None, якщо в статті замало інформації."""
-    prompt = prompts.WRITE_PROMPT.format(source=item.source, title=item.title, text=article_text)
+def write_post(item: NewsItem, article_text: str, guide: bool = False) -> Post | None:
+    """Пише пост. guide=True — інструкція за офіційною сторінкою замість новини.
+    Повертає None, якщо в тексті замало інформації."""
+    template = prompts.GUIDE_PROMPT if guide else prompts.WRITE_PROMPT
+    prompt = template.format(source=item.source, title=item.title, text=article_text)
     data = ask_json(prompts.WRITE_SYSTEM, prompt)
     if isinstance(data, list):  # відповідь загорнута в список — беремо перший об'єкт
         data = next((entry for entry in data if isinstance(entry, dict)), {})

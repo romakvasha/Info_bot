@@ -98,11 +98,14 @@ def collect(feeds: dict, known_urls: set, known_titles: set,
     seen_urls, seen_titles = set(known_urls), set(known_titles)
     items: list[NewsItem] = []
 
-    for source, url in feeds.items():
-        try:
-            entries = _fetch_feed(url)
-        except Exception as exc:  # одне зламане джерело не повинно зупиняти бота
-            log.warning("⚠️  %s: джерело недоступне (%s)", source, exc)
+    for source, urls in feeds.items():
+        entries = []  # в одного джерела може бути кілька адрес (наприклад, сторінки архіву)
+        for url in urls if isinstance(urls, (list, tuple)) else [urls]:
+            try:
+                entries += _fetch_feed(url)
+            except Exception as exc:  # одне зламане джерело не повинно зупиняти бота
+                log.warning("⚠️  %s: джерело недоступне (%s)", source, exc)
+        if not entries:
             continue
 
         taken = 0
@@ -145,6 +148,12 @@ def pick_candidates(items: list[NewsItem], limit: int) -> list[NewsItem]:
                 picked.append(queue.pop(0))
     picked.sort(key=lambda item: item.published, reverse=True)
     return picked
+
+
+def mentions(item: NewsItem, keywords: list[str]) -> bool:
+    """Чи є в заголовку або описі новини хоч одне з ключових слів."""
+    text = f"{item.title} {item.summary}".lower()
+    return any(word in text for word in keywords)
 
 
 def _simple_extract(page: str) -> str:
