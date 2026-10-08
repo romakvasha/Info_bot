@@ -107,13 +107,13 @@ def build_caption(post: ai.Post, item: news.NewsItem, topic_key: str, channel: s
     return caption
 
 
-def save_preview(number: int, image: bytes, caption: str) -> None:
+def save_preview(number: int | str, image: bytes, caption: str) -> None:
     os.makedirs("preview", exist_ok=True)
     with open(os.path.join("preview", f"post-{number}.jpg"), "wb") as f:
         f.write(image)
     with open(os.path.join("preview", f"post-{number}.txt"), "w", encoding="utf-8") as f:
         f.write(caption)
-    log.info("   🧪 Збережено в preview/post-%d.jpg\n%s", number, caption)
+    log.info("   🧪 Збережено в preview/post-%s.jpg\n%s", number, caption)
 
 
 def publish(token: str, channel: str, image: bytes, caption: str) -> None:
@@ -176,20 +176,21 @@ def post_rates_if_due(dry_run: bool, token: str, channel: str) -> None:
         return
 
     try:
-        tables = rates.fetch_tables()
+        data = rates.fetch()
     except rates.RatesError as exc:
         log.warning("⚠️  Курс валют: %s. Спробую наступного запуску.", exc)
         return
     link = ""
     if config.ADD_CHANNEL_LINK and channel.startswith("@"):
         link = f'<a href="https://t.me/{channel[1:]}">{esc(config.CHANNEL_TITLE)}</a>'
-    message = rates.build_message(tables, link)
+    caption = rates.build_caption(data, link)
+    image = card.make_rates_card(data.rows, now)
 
     if dry_run:
-        log.info("💱 Курс валют (тест, не публікую):\n%s\n", message)
+        save_preview("rates", image, caption)
         return
     try:
-        telegram_api.send_message(token, channel, message)
+        publish(token, channel, image, caption)
     except telegram_api.TelegramError as exc:
         log.error("❌ Курс валют не опубліковано: %s", exc)
         return

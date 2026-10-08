@@ -121,7 +121,6 @@ def make_card(headline: str, topic_key: str, moment: datetime) -> bytes:
         ink = config.COLOR_WHITE
 
     draw = ImageDraw.Draw(image)
-    draw.rectangle([0, TOP_H, W, H], fill=config.COLOR_RED)
 
     # Заголовок: рахуємо реальні межі тексту й ставимо блок по центру верхньої частини
     font, lines, line_h = _fit_headline(draw, headline, W - 2 * MARGIN, TOP_H - 2 * PAD_Y)
@@ -131,17 +130,62 @@ def make_card(headline: str, topic_key: str, moment: datetime) -> bytes:
     for i, line in enumerate(lines):
         draw.text((MARGIN, i * line_h + shift), line, font=font, fill=ink, anchor="ls")
 
-    # Червона смуга: тема й дата зліва, назва каналу справа
+    draw_band(draw, topic["label"], moment)
+    return _jpeg(image)
+
+
+def draw_band(draw: ImageDraw.ImageDraw, label: str, moment: datetime) -> None:
+    """Червона смуга: підпис і дата зліва, назва каналу справа."""
+    draw.rectangle([0, TOP_H, W, H], fill=config.COLOR_RED)
     center = TOP_H + BAND_H // 2
     label_font, date_font = _font(LABEL_FONT, 38), _font(TEXT_FONT, 27)
-    draw.text((MARGIN, center - 4), topic["label"], font=label_font, fill=config.COLOR_WHITE, anchor="ls")
+    draw.text((MARGIN, center - 4), label, font=label_font, fill=config.COLOR_WHITE, anchor="ls")
     draw.text((MARGIN, center + 40), ukrainian_date(moment), font=date_font, fill=(255, 222, 228), anchor="ls")
     draw.text((W - MARGIN, center + 14), config.CHANNEL_TITLE, font=label_font,
               fill=config.COLOR_WHITE, anchor="rs")
 
+
+def _jpeg(image: Image.Image) -> bytes:
     buffer = io.BytesIO()
     image.save(buffer, "JPEG", quality=92, optimize=True)
     return buffer.getvalue()
+
+
+def make_rates_card(rows, moment: datetime) -> bytes:
+    """Картка курсу валют: по рядку на курс — назва, велике кольорове число й зміна за день.
+    rows — список rates.Rate."""
+    import rates  # тут, щоб card.py не залежав від rates під час імпорту
+
+    image = Image.new("RGB", (W, H), config.COLOR_WHITE)
+    draw = ImageDraw.Draw(image)
+    title_font = _font(LABEL_FONT, 30)
+    value_font = _font(HEADLINE_FONT, 84)
+    change_font = _font(LABEL_FONT, 40)
+    source_font = _font(TEXT_FONT, 26)
+    row_h = (TOP_H - 40) // len(rows)
+
+    for i, rate in enumerate(rows):
+        top = 26 + i * row_h
+        if i:  # тонка сіра лінія між рядками
+            draw.line([MARGIN, top - 4, W - MARGIN, top - 4], fill=(225, 225, 225), width=2)
+        baseline = top + row_h - 30
+        draw.text((MARGIN, top + 44), rate.title.upper(), font=title_font, fill=(110, 110, 110), anchor="ls")
+        value = f"{rate.amount} = {rates.number(rate.value, rate.decimals)} {rate.currency}"
+        draw.text((MARGIN, baseline), value, font=value_font, fill=rate.color, anchor="ls")
+
+        # справа: зміна за день (зелена стрілка вгору, червона вниз) і джерело
+        if rate.change > 0:
+            change, color = f"▲ {rates.number(rate.change, rate.decimals, sign=True)}", (0, 150, 70)
+        elif rate.change < 0:
+            change, color = f"▼ {rates.number(rate.change, rate.decimals, sign=True)}", config.COLOR_RED
+        else:
+            change, color = "без змін", (140, 140, 140)
+        draw.text((W - MARGIN, baseline - 30), change, font=change_font, fill=color, anchor="rs")
+        draw.text((W - MARGIN, baseline + 4), f"курс {rate.source}", font=source_font,
+                  fill=(140, 140, 140), anchor="rs")
+
+    draw_band(draw, "Курс валют", moment)
+    return _jpeg(image)
 
 
 if __name__ == "__main__":
@@ -156,3 +200,13 @@ if __name__ == "__main__":
         with open(path, "wb") as f:
             f.write(make_card(text, topic, datetime.now()))
         print("Збережено", path)
+
+    import rates
+    demo = [
+        rates.Rate("Долар → злотий", "1 $", 3.9132, 3.9010, "zł", 4, "NBP", (212, 33, 61)),
+        rates.Rate("Долар → гривня", "1 $", 41.2345, 41.3001, "₴", 2, "НБУ", (0, 87, 183)),
+        rates.Rate("Гривня → злотий", "100 ₴", 8.8512, 8.8510, "zł", 2, "НБУ", (196, 120, 0)),
+    ]
+    with open(os.path.join("preview", "demo-rates.jpg"), "wb") as f:
+        f.write(make_rates_card(demo, datetime.now()))
+    print("Збережено preview/demo-rates.jpg")
