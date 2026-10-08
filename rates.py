@@ -2,7 +2,7 @@
 Щоденний курс валют: картинка з трьома курсами й короткий підпис.
 
 - долар → злотий — офіційний курс Національного банку Польщі (NBP, таблиця A);
-- долар → гривня і гривня → злотий — офіційний курс Національного банку України (НБУ).
+- долар → гривня і злотий → гривня — офіційний курс Національного банку України (НБУ).
 
 NBP публікує курс у робочі дні близько полудня, НБУ — щодня (на вихідні діє
 п'ятничний). Обидва API безкоштовні й без ключа: https://api.nbp.pl,
@@ -22,6 +22,12 @@ NBP_USD_URL = "https://api.nbp.pl/api/exchangerates/rates/A/USD/last/2/?format=j
 NBU_URL = "https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?json"
 
 
+# Кольори цифр на картці
+GREEN = (0, 150, 70)
+LIGHT_BLUE = (0, 150, 220)
+YELLOW = (235, 180, 0)
+
+
 class RatesError(Exception):
     pass
 
@@ -29,7 +35,7 @@ class RatesError(Exception):
 @dataclass
 class Rate:
     title: str          # підпис над курсом на картці
-    amount: str         # ліва частина: «1 $», «100 ₴»
+    amount: str         # ліва частина: «1 $», «1 zł»
     value: float
     previous: float | None
     currency: str       # «zł» або «₴»
@@ -48,7 +54,6 @@ class Rate:
 @dataclass
 class Rates:
     rows: list[Rate]
-    pln_in_uah: float   # скільки гривень за 1 злотий (для підпису)
     nbp_date: date
     nbu_date: date
 
@@ -103,16 +108,12 @@ def fetch() -> Rates:
         log.warning("⚠️  НБУ: не вдалося взяти попередній курс (%s)", exc)
         nbu_before = {}
 
-    def uah_100_in_pln(table: dict) -> float | None:
-        return 100 / table["PLN"] if "PLN" in table else None
-
     rows = [
-        Rate("Долар → злотий", "1 $", usd_pln, usd_pln_before, "zł", 4, "NBP", (212, 33, 61)),
-        Rate("Долар → гривня", "1 $", nbu["USD"], nbu_before.get("USD"), "₴", 2, "НБУ", (0, 87, 183)),
-        Rate("Гривня → злотий", "100 ₴", uah_100_in_pln(nbu), uah_100_in_pln(nbu_before), "zł", 2, "НБУ",
-             (196, 120, 0)),
+        Rate("Долар → злотий", "1 $", usd_pln, usd_pln_before, "zł", 4, "NBP", GREEN),
+        Rate("Долар → гривня", "1 $", nbu["USD"], nbu_before.get("USD"), "₴", 2, "НБУ", LIGHT_BLUE),
+        Rate("Злотий → гривня", "1 zł", nbu["PLN"], nbu_before.get("PLN"), "₴", 2, "НБУ", YELLOW),
     ]
-    return Rates(rows, nbu["PLN"], nbp_date, nbu_date)
+    return Rates(rows, nbp_date, nbu_date)
 
 
 def _arrow(rate: Rate) -> str:
@@ -122,14 +123,13 @@ def _arrow(rate: Rate) -> str:
 
 
 def build_caption(data: Rates, channel_link: str = "") -> str:
-    usd_pln, usd_uah, uah_pln = data.rows
+    usd_pln, usd_uah, pln_uah = data.rows
     lines = [
         "💱 <b>Курс валют на сьогодні</b>",
         "",
         f"🇺🇸→🇵🇱 1 долар = <b>{number(usd_pln.value, 4)} zł</b>{_arrow(usd_pln)}",
         f"🇺🇸→🇺🇦 1 долар = <b>{number(usd_uah.value, 2)} ₴</b>{_arrow(usd_uah)}",
-        f"🇺🇦→🇵🇱 100 гривень = <b>{number(uah_pln.value, 2)} zł</b>{_arrow(uah_pln)}",
-        f"🇵🇱→🇺🇦 1 злотий = <b>{number(data.pln_in_uah, 2)} ₴</b>",
+        f"🇵🇱→🇺🇦 1 злотий = <b>{number(pln_uah.value, 2)} ₴</b>{_arrow(pln_uah)}",
         "",
         f"Офіційні курси: долар до злотого — NBP від {data.nbp_date:%d.%m.%Y}, "
         f"гривня — НБУ від {data.nbu_date:%d.%m.%Y}. У канторах і банках курс відрізняється.",

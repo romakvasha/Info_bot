@@ -203,9 +203,9 @@ if __name__ == "__main__":
 
     import rates
     demo = [
-        rates.Rate("Долар → злотий", "1 $", 3.9132, 3.9010, "zł", 4, "NBP", (212, 33, 61)),
-        rates.Rate("Долар → гривня", "1 $", 41.2345, 41.3001, "₴", 2, "НБУ", (0, 87, 183)),
-        rates.Rate("Гривня → злотий", "100 ₴", 8.8512, 8.8510, "zł", 2, "НБУ", (196, 120, 0)),
+        rates.Rate("Долар → злотий", "1 $", 3.9132, 3.9111, "zł", 4, "NBP", rates.GREEN),
+        rates.Rate("Долар → гривня", "1 $", 44.86, 44.94, "₴", 2, "НБУ", rates.LIGHT_BLUE),
+        rates.Rate("Злотий → гривня", "1 zł", 11.45, 11.59, "₴", 2, "НБУ", rates.YELLOW),
     ]
     with open(os.path.join("preview", "demo-rates.jpg"), "wb") as f:
         f.write(make_rates_card(demo, datetime.now()))
