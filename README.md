@@ -58,10 +58,10 @@ GitHub інколи запускає заплановані задачі із з
 чи пропустити запуск. Надійніше, щоб бота щогодини «будив» зовнішній сервіс cron-job.org:
 
 1. На GitHub створи ключ: https://github.com/settings/personal-access-tokens/new →
-   **Only select repositories** → `PolskaInfo_bot` → **Permissions → Actions: Read and write**
+   **Only select repositories** → `Info_bot` → **Permissions → Actions: Read and write**
    → **Generate token**. Скопіюй його (`github_pat_…`) і нікому не показуй.
 2. На https://console.cron-job.org створи завдання:
-   - **URL:** `https://api.github.com/repos/romakvasha/PolskaInfo_bot/actions/workflows/news.yml/dispatches`
+   - **URL:** `https://api.github.com/repos/romakvasha/Info_bot/actions/workflows/news.yml/dispatches`
    - **Schedule:** Custom, хвилина `17`, години `6–23`, часовий пояс `Europe/Warsaw`;
    - **Advanced → Request method:** `POST`;
    - **Headers:** `Authorization: Bearer <ключ>`, `Accept: application/vnd.github+json`,

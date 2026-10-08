@@ -52,7 +52,7 @@ Telegram-канал «Новини Польща»: бот сам знаходи�
 ## Що власник уже налаштував
 
 Публічний канал, бот-адміністратор із правом публікації, ключ Gemini і приватний
-репозиторій `romakvasha/PolskaInfo_bot` з трьома секретами Actions (`TELEGRAM_BOT_TOKEN`,
+репозиторій `romakvasha/Info_bot` з трьома секретами Actions (`TELEGRAM_BOT_TOKEN`,
 `GEMINI_API_KEY`, `TELEGRAM_CHANNEL`) у Repository secrets. Бот — @PolskaInfo_Bot.
 
 ## Архітектура
