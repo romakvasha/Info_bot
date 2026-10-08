@@ -872,6 +872,33 @@
    "topic": "safety",
    "status": "posted",
    "at": "2026-10-07T23:04:06+00:00"
+  },
+  {
+   "url": "https://www.bankier.pl/wiadomosc/Atak-w-szkole-pod-Wyszkowem-Uczen-rzucil-sie-na-wozna-9209333.html",
+   "key": "bankier.pl/wiadomosc/Atak-w-szkole-pod-Wyszkowem-Uczen-rzucil-sie-na-wozna-9209333.html",
+   "title": "Tragedia w szkole na Mazowszu. Uczeń rzucił się z nożem na woźną. Kobieta nie żyje",
+   "headline": "",
+   "topic": "safety",
+   "status": "failed",
+   "at": "2026-10-08T11:21:12+00:00"
+  },
+  {
+   "url": "https://www.bankier.pl/wiadomosc/Mandaty-z-fotoradarow-po-nowemu-Wlasciciel-auta-zaplaci-7-5-tys-zl-kary-9209346.html",
+   "key": "bankier.pl/wiadomosc/Mandaty-z-fotoradarow-po-nowemu-Wlasciciel-auta-zaplaci-7-5-tys-zl-kary-9209346.html",
+   "title": "Nawet 7,5 tys. zł kary za zdjęcie z fotoradaru. Nowy projekt uderzy we właścicieli aut",
+   "headline": "Штрафи за фоторадари в Польщі: новий проєкт закону",
+   "topic": "transport",
+   "status": "posted",
+   "at": "2026-10-08T11:21:26+00:00"
+  },
+  {
+   "url": "https://www.rmf24.pl/fakty/ekonomia/news-ile-naprawde-zarabiaja-polacy-sa-najnowsze-dane-gus,nIdn,1021024",
+   "key": "rmf24.pl/fakty/ekonomia/news-ile-naprawde-zarabiaja-polacy-sa-najnowsze-dane-gus,nIdn,1021024",
+   "title": "Ile naprawdę zarabiają Polacy? Są najnowsze dane GUS",
+   "headline": "Статистичне управління Польщі оприлюднило дані про зарплати",
+   "topic": "money",
+   "status": "posted",
+   "at": "2026-10-08T11:22:16+00:00"
   }
  ]
 }
