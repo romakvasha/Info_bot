@@ -258,7 +258,7 @@ LEGAL_TOPIC = "legalization"
 
 def post_legal_if_due(dry_run: bool, token: str, channel: str) -> int:
     """Раз на день, у перший запуск після LEGAL_HOUR, публікує пост про легалізацію:
-    свіжу новину, а якщо такої немає — інструкцію з офіційної сторінки.
+    свіжу новину, а якщо такої немає — ще не опубліковану статтю-інструкцію з архіву.
     У тестовому запуску працює в будь-яку годину. Повертає 1, якщо Telegram налаштовано неправильно."""
     if not config.LEGAL_ENABLED:
         return 0
@@ -271,8 +271,6 @@ def post_legal_if_due(dry_run: bool, token: str, channel: str) -> int:
     if storage.posted_today(state, WARSAW) >= config.MAX_POSTS_PER_DAY:
         return 0
 
-    if dry_run:
-        check_guides()
     log.info("🪪 Пост про легалізацію: шукаю новини за %d год…", config.LEGAL_MAX_AGE_HOURS)
     items = news.collect(
         {**config.RSS_FEEDS, **config.LEGAL_FEEDS},
@@ -308,40 +306,35 @@ def post_legal_if_due(dry_run: bool, token: str, channel: str) -> int:
             log.info("\n🧪 Тест: ось якою буде інструкція в день, коли новин про легалізацію немає")
             break
     else:
-        log.info("Свіжої новини про легалізацію немає — публікую інструкцію з офіційного сайту")
+        log.info("Свіжої новини про легалізацію немає — шукаю статтю-інструкцію в архіві")
 
-    for url, title in next_guides(state):
-        log.info("\n🪪 [%s] %s", config.LEGAL_GUIDE_SOURCE, title)
-        text = news.fetch_article_text(url, limit=8000)
-        if len(text) < 500:
-            log.warning("   ⚠️  Сторінка недоступна чи порожня, беру наступну: %s", url)
-            continue
-        item = news.NewsItem(0, title, url, config.LEGAL_GUIDE_SOURCE, "", now)
-        result = process_item(item, LEGAL_TOPIC, state, "legal-guide", dry_run, token, channel,
-                              text=text, guide=True)
-        if result == "setup":
-            return 1
-        if result != "skipped":  # опубліковано, або AI недоступний чи помиляється — до наступного запуску
-            return 0
-    log.warning("⚠️  Пост про легалізацію сьогодні не вийшов: жодна інструкція не підійшла")
+    guides = news.collect(
+        config.LEGAL_GUIDE_FEEDS,
+        storage.known_url_keys(state),
+        storage.known_title_keys(state),
+        config.LEGAL_GUIDE_MAX_AGE_DAYS * 24,
+        config.MAX_CANDIDATES,
+        config.SKIP_URL_PARTS,
+    )
+    if not guides:
+        log.warning("⚠️  Пост про легалізацію сьогодні не вийшов: в архіві немає нових статей")
+        return 0
+    log.info("🔎 AI вибирає інструкцію серед %d статей…", len(guides))
+    try:
+        chosen = ai.select_news(guides[:config.MAX_CANDIDATES], storage.recent_headlines(state), 1,
+                                prompts.LEGAL_GUIDE_SELECT_PROMPT)
+    except ai.AIUnavailable as exc:
+        log.warning("⏸  AI зараз недоступний, пост про легалізацію — наступного запуску: %s", exc)
+        return 0
+    except ai.AIError as exc:
+        log.error("❌ AI не зміг вибрати інструкцію: %s", exc)
+        return 0
+    for item, _ in chosen:
+        log.info("\n🪪 [%s] %s", item.source, item.title)
+        result = process_item(item, LEGAL_TOPIC, state, "legal-guide", dry_run, token, channel, guide=True)
+        return 1 if result == "setup" else 0
+    log.warning("⚠️  Пост про легалізацію сьогодні не вийшов: AI не знайшов актуальної інструкції")
     return 0
-
-
-def check_guides() -> None:
-    """Тестовий запуск: чи відкриваються всі сторінки для інструкцій."""
-    for url, title in config.LEGAL_GUIDES.items():
-        size = len(news.fetch_article_text(url, limit=8000))
-        if size >= 500:
-            log.info("✓ Інструкція «%s»: %d символів", title, size)
-        else:
-            log.warning("⚠️  Інструкція «%s»: сторінка недоступна чи порожня (%s)", title, url)
-
-
-def next_guides(state: dict) -> list[tuple[str, str]]:
-    """Інструкції по черзі: спершу ще не опубліковані, далі ті, що були найдавніше."""
-    used = storage.last_used(state)
-    guides = list(config.LEGAL_GUIDES.items())
-    return sorted(guides, key=lambda guide: used.get(news.normalize_url(guide[0]), ""))
 
 
 def run(dry_run: bool, token: str, channel: str) -> int:

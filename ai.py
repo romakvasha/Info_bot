@@ -9,6 +9,7 @@ import os
 import re
 import time
 from dataclasses import dataclass
+from datetime import datetime
 from zoneinfo import ZoneInfo
 
 import requests
@@ -173,6 +174,11 @@ def _parse_json(text: str) -> dict | list:
             data = json.loads(match.group(0)) if match else None
         except json.JSONDecodeError:
             data = None
+    if data is None and match:  # зайва дужка чи текст після JSON: беремо перший цілий об'єкт
+        try:
+            data, _ = json.JSONDecoder().raw_decode(match.group(0))
+        except json.JSONDecodeError:
+            data = None
     if not isinstance(data, (dict, list)):
         raise _BadJSON(f"AI повернув не JSON ({len(text)} символів): {text[:150]} … {text[-80:]}")
     return data
@@ -209,6 +215,7 @@ def select_news(items: list[NewsItem], recent: list[str], limit: int,
         topics=", ".join(config.TOPICS),
         recent="\n".join(f"- {title}" for title in recent) or "(поки нічого)",
         listing="\n".join(lines),
+        today=datetime.now(WARSAW).strftime("%d.%m.%Y"),
     )
     data = ask_json(prompts.SELECT_SYSTEM, prompt)
 

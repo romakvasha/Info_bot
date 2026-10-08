@@ -72,11 +72,6 @@ def posted_today(state: dict, tz, topic: str = "") -> int:
     return count
 
 
-def last_used(state: dict) -> dict[str, str]:
-    """Ключ посилання → коли його востаннє брали (для черги інструкцій)."""
-    return {entry.get("key") or normalize_url(entry["url"]): entry.get("at", "") for entry in state["posted"]}
-
-
 def remember(state: dict, url: str, title: str, status: str, headline: str = "", topic: str = "") -> None:
     """status: "posted" — опубліковано, "skipped" — замало інформації, "failed" — помилка."""
     state["posted"].append(

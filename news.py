@@ -98,11 +98,14 @@ def collect(feeds: dict, known_urls: set, known_titles: set,
     seen_urls, seen_titles = set(known_urls), set(known_titles)
     items: list[NewsItem] = []
 
-    for source, url in feeds.items():
-        try:
-            entries = _fetch_feed(url)
-        except Exception as exc:  # одне зламане джерело не повинно зупиняти бота
-            log.warning("⚠️  %s: джерело недоступне (%s)", source, exc)
+    for source, urls in feeds.items():
+        entries = []  # в одного джерела може бути кілька адрес (наприклад, сторінки архіву)
+        for url in urls if isinstance(urls, (list, tuple)) else [urls]:
+            try:
+                entries += _fetch_feed(url)
+            except Exception as exc:  # одне зламане джерело не повинно зупиняти бота
+                log.warning("⚠️  %s: джерело недоступне (%s)", source, exc)
+        if not entries:
             continue
 
         taken = 0
