@@ -52,6 +52,26 @@ GitHub інколи запускає заплановані задачі із з
 щогодини вдень займає приблизно 600–1100 хвилин, тож запас є. Цілодобовий розклад
 витрачає більше. Скільки використано, видно в Settings → Billing and plans.
 
+### Якщо GitHub пропускає запуски за розкладом
+
+На безкоштовному тарифі GitHub запускає задачі за розкладом без гарантій: може запізнитися
+чи пропустити запуск. Надійніше, щоб бота щогодини «будив» зовнішній сервіс cron-job.org:
+
+1. На GitHub створи ключ: https://github.com/settings/personal-access-tokens/new →
+   **Only select repositories** → `Info_bot` → **Permissions → Actions: Read and write**
+   → **Generate token**. Скопіюй його (`github_pat_…`) і нікому не показуй.
+2. На https://console.cron-job.org створи завдання:
+   - **URL:** `https://api.github.com/repos/romakvasha/Info_bot/actions/workflows/news.yml/dispatches`
+   - **Schedule:** Custom, хвилина `17`, години `6–23`, часовий пояс `Europe/Warsaw`;
+   - **Advanced → Request method:** `POST`;
+   - **Headers:** `Authorization: Bearer <ключ>`, `Accept: application/vnd.github+json`,
+     `X-GitHub-Api-Version: 2022-11-28`, `Content-Type: application/json`;
+   - **Request body:** `{"ref":"main"}`.
+3. **Test run** має показати відповідь `204`, а в Actions з'явиться новий запуск.
+
+Розклад GitHub можна лишити як запасний: якщо два запуски збіжуться, другий дочекається
+першого й повторів не буде.
+
 ## Налаштування
 
 Усе основне лежить у `config.py`:
@@ -61,6 +81,9 @@ GitHub інколи запускає заплановані задачі із з
 - `RSS_FEEDS` — джерела (назва й адреса RSS), можна додавати й видаляти;
 - `TOPICS` — теми, емодзі й хештеги;
 - `CHANNEL_TITLE` і `ADD_CHANNEL_LINK` — підпис на картинці й посилання на канал у постах.
+
+- `RATES_ENABLED` і `RATES_HOUR` — щоденна картка з курсом валют (о 14:00 або в перший запуск
+  після): долар → злотий від NBP, долар → гривня й злотий → гривня від НБУ. Курси — у `rates.py`.
 
 Стиль постів і критерії відбору новин — у `prompts.py`, звичайним текстом.
 Редагувати файли можна прямо на GitHub (іконка олівця).

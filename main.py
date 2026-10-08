@@ -20,6 +20,7 @@ import ai
 import card
 import config
 import news
+import rates
 import storage
 import telegram_api
 
@@ -106,13 +107,13 @@ def build_caption(post: ai.Post, item: news.NewsItem, topic_key: str, channel: s
     return caption
 
 
-def save_preview(number: int, image: bytes, caption: str) -> None:
+def save_preview(number: int | str, image: bytes, caption: str) -> None:
     os.makedirs("preview", exist_ok=True)
     with open(os.path.join("preview", f"post-{number}.jpg"), "wb") as f:
         f.write(image)
     with open(os.path.join("preview", f"post-{number}.txt"), "w", encoding="utf-8") as f:
         f.write(caption)
-    log.info("   🧪 Збережено в preview/post-%d.jpg\n%s", number, caption)
+    log.info("   🧪 Збережено в preview/post-%s.jpg\n%s", number, caption)
 
 
 def publish(token: str, channel: str, image: bytes, caption: str) -> None:
@@ -154,11 +155,48 @@ def main() -> int:
         log.error("❌ Не задано секрети TELEGRAM_BOT_TOKEN і/або TELEGRAM_CHANNEL.")
         return 1
 
+    post_rates_if_due(dry_run, token, channel)
     code = run(dry_run, token, channel)
     if not telegram_ok:  # у тестовому запуску решту перевірили, але Telegram треба виправити
         log.error("❗ Telegram налаштовано неправильно, підказка — на початку лога.")
         return 1
     return code
+
+
+def post_rates_if_due(dry_run: bool, token: str, channel: str) -> None:
+    """Раз на день, у перший запуск після RATES_HOUR, публікує курс валют.
+    У тестовому запуску курс показується в лозі завжди, щоб його можна було перевірити."""
+    if not config.RATES_ENABLED:
+        return
+    now = datetime.now(WARSAW)
+    state = storage.load()
+    if state.get("rates_date") == now.date().isoformat():
+        return  # сьогодні курс уже був
+    if now.hour < config.RATES_HOUR and not dry_run:
+        return
+
+    try:
+        data = rates.fetch()
+    except rates.RatesError as exc:
+        log.warning("⚠️  Курс валют: %s. Спробую наступного запуску.", exc)
+        return
+    link = ""
+    if config.ADD_CHANNEL_LINK and channel.startswith("@"):
+        link = f'<a href="https://t.me/{channel[1:]}">{esc(config.CHANNEL_TITLE)}</a>'
+    caption = rates.build_caption(data, link)
+    image = card.make_rates_card(data.rows, now)
+
+    if dry_run:
+        save_preview("rates", image, caption)
+        return
+    try:
+        publish(token, channel, image, caption)
+    except telegram_api.TelegramError as exc:
+        log.error("❌ Курс валют не опубліковано: %s", exc)
+        return
+    state["rates_date"] = now.date().isoformat()
+    storage.save(state)
+    log.info("💱 Опубліковано курс валют\n")
 
 
 def run(dry_run: bool, token: str, channel: str) -> int:
