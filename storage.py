@@ -55,18 +55,26 @@ def recent_headlines(state: dict, limit: int = 40) -> list[str]:
     return lines
 
 
-def posted_today(state: dict, tz) -> int:
-    """Скільки постів уже опубліковано сьогодні (день рахуємо за часовим поясом tz)."""
+def posted_today(state: dict, tz, topic: str = "") -> int:
+    """Скільки постів уже опубліковано сьогодні (день рахуємо за часовим поясом tz).
+    Якщо задано topic — лише постів на цю тему."""
     today = datetime.now(tz).date()
     count = 0
     for entry in state["posted"]:
         if entry.get("status") != "posted" or not entry.get("at"):
+            continue
+        if topic and entry.get("topic") != topic:
             continue
         try:
             count += datetime.fromisoformat(entry["at"]).astimezone(tz).date() == today
         except ValueError:
             continue
     return count
+
+
+def last_used(state: dict) -> dict[str, str]:
+    """Ключ посилання → коли його востаннє брали (для черги інструкцій)."""
+    return {entry.get("key") or normalize_url(entry["url"]): entry.get("at", "") for entry in state["posted"]}
 
 
 def remember(state: dict, url: str, title: str, status: str, headline: str = "", topic: str = "") -> None:

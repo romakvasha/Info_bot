@@ -147,6 +147,12 @@ def pick_candidates(items: list[NewsItem], limit: int) -> list[NewsItem]:
     return picked
 
 
+def mentions(item: NewsItem, keywords: list[str]) -> bool:
+    """Чи є в заголовку або описі новини хоч одне з ключових слів."""
+    text = f"{item.title} {item.summary}".lower()
+    return any(word in text for word in keywords)
+
+
 def _simple_extract(page: str) -> str:
     """Запасний варіант, якщо trafilatura не встановлена: беремо абзаци <p>."""
     page = re.sub(r"(?is)<(script|style|noscript)[^>]*>.*?</\1>", " ", page)

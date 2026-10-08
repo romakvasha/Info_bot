@@ -193,8 +193,9 @@ def _clean(value) -> str:
     return text.strip(" \"«»")
 
 
-def select_news(items: list[NewsItem], recent: list[str], limit: int) -> list[tuple[NewsItem, str]]:
-    """Повертає список (новина, тема), від найважливішої."""
+def select_news(items: list[NewsItem], recent: list[str], limit: int,
+                template: str = prompts.SELECT_PROMPT) -> list[tuple[NewsItem, str]]:
+    """Повертає список (новина, тема), від найважливішої. template — текст завдання для AI."""
     lines = []
     for item in items:
         when = item.published.astimezone(WARSAW).strftime("%d.%m %H:%M")
@@ -203,7 +204,7 @@ def select_news(items: list[NewsItem], recent: list[str], limit: int) -> list[tu
             line += f"\n    {item.summary[:280]}"
         lines.append(line)
 
-    prompt = prompts.SELECT_PROMPT.format(
+    prompt = template.format(
         limit=limit,
         topics=", ".join(config.TOPICS),
         recent="\n".join(f"- {title}" for title in recent) or "(поки нічого)",
@@ -233,9 +234,11 @@ def select_news(items: list[NewsItem], recent: list[str], limit: int) -> list[tu
     return chosen
 
 
-def write_post(item: NewsItem, article_text: str) -> Post | None:
-    """Пише пост. Повертає None, якщо в статті замало інформації."""
-    prompt = prompts.WRITE_PROMPT.format(source=item.source, title=item.title, text=article_text)
+def write_post(item: NewsItem, article_text: str, guide: bool = False) -> Post | None:
+    """Пише пост. guide=True — інструкція за офіційною сторінкою замість новини.
+    Повертає None, якщо в тексті замало інформації."""
+    template = prompts.GUIDE_PROMPT if guide else prompts.WRITE_PROMPT
+    prompt = template.format(source=item.source, title=item.title, text=article_text)
     data = ask_json(prompts.WRITE_SYSTEM, prompt)
     if isinstance(data, list):  # відповідь загорнута в список — беремо перший об'єкт
         data = next((entry for entry in data if isinstance(entry, dict)), {})

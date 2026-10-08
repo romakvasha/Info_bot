@@ -39,6 +39,44 @@ ADD_CHANNEL_LINK = True          # додавати в кінці поста п�
 RATES_ENABLED = True
 RATES_HOUR = 14
 
+# ── Щоденний пост про легалізацію ───────────────────────────────────────
+# Раз на день, у перший запуск після LEGAL_HOUR (за Варшавою), бот публікує пост про
+# легалізацію: карта побиту, сталий побут, резидент ЄС, паспорт для іноземців, візи,
+# статус UKR. Спершу шукає новину за останні LEGAL_MAX_AGE_HOURS у всіх джерелах.
+# Якщо такої немає — публікує коротку інструкцію з офіційної сторінки (LEGAL_GUIDES),
+# кожного дня наступну. Якщо пост про легалізацію сьогодні вже вийшов, нічого не робить.
+LEGAL_ENABLED = True
+LEGAL_HOUR = 11
+LEGAL_MAX_AGE_HOURS = 72
+
+# Джерела саме про іноземців: їхні новини завжди потрапляють до AI на відбір.
+LEGAL_FEEDS = {
+    "Ukrainian in Poland": "https://ukrainianinpoland.pl/feed/",
+    "Наш вибір": "https://nashwybir.pl/feed/",
+    "UdSC": "https://www.gov.pl/web/udsc/rss",
+}
+
+# З інших джерел до AI потрапляють лише новини, де є одне з цих слів (у заголовку чи описі)
+LEGAL_KEYWORDS = [
+    "cudzoziem", "pobyt", "legaliz", "wiza", "wizy", "wizę", "wizow", "paszport", "obywatelstw",
+    "uchodźc", "migra", "imigra", "pesel", "zezwoleni", "udsc", "specustaw", "ochrony czasowej",
+    "ochrona czasowa", "rezydent", "foreigner", "residence", "visa", "migrant", "permit",
+    "легаліз", "побит", "віз", "паспорт", "іноземц", "мігра", "біженц", "громадянств", "дозвіл",
+]
+
+# Офіційні сторінки Управління у справах іноземців (UdSC) для інструкцій
+LEGAL_GUIDE_SOURCE = "UdSC (gov.pl)"
+LEGAL_GUIDES = {
+    "https://www.gov.pl/web/udsc/zezwolenie-na-pobyt-czasowy": "Zezwolenie na pobyt czasowy",
+    "https://www.gov.pl/web/udsc/zezwolenie-na-pobyt-staly": "Zezwolenie na pobyt stały",
+    "https://www.gov.pl/web/udsc/zezwolenie-na-pobyt-rezydenta-dlugoterminowego-ue":
+        "Zezwolenie na pobyt rezydenta długoterminowego UE",
+    "https://www.gov.pl/web/udsc/karta-pobytu": "Karta pobytu",
+    "https://www.gov.pl/web/udsc/polski-dokument-podrozy-dla-cudzoziemca": "Polski dokument podróży dla cudzoziemca",
+    "https://www.gov.pl/web/udsc/polski-dokument-tozsamosci-cudzoziemca": "Polski dokument tożsamości cudzoziemca",
+    "https://www.gov.pl/web/udsc/obywatele-ukrainy": "Obywatele Ukrainy",
+}
+
 # ── Джерела ─────────────────────────────────────────────────────────────
 # Назва: адреса RSS. Якщо якесь джерело перестане працювати,
 # бот просто пропустить його й напише про це в лозі.
