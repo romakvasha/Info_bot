@@ -12,6 +12,7 @@ https://bank.gov.ua/ua/open-data/api-dev
 import logging
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import requests
 
@@ -79,8 +80,8 @@ def fetch_nbp_usd() -> tuple[float, float | None, date]:
         raise RatesError("NBP повернув незрозумілу відповідь")
 
 
-def _nbu_table(day: date | None = None) -> tuple[dict[str, float], date]:
-    url = NBU_URL + (f"&date={day:%Y%m%d}" if day else "")
+def _nbu_table(day: date) -> tuple[dict[str, float], date]:
+    url = f"{NBU_URL}&date={day:%Y%m%d}"
     data = _get_json(url, "НБУ")
     try:
         table = {item["cc"]: float(item["rate"]) for item in data}
@@ -94,7 +95,8 @@ def _nbu_table(day: date | None = None) -> tuple[dict[str, float], date]:
 
 def fetch() -> Rates:
     usd_pln, usd_pln_before, nbp_date = fetch_nbp_usd()
-    nbu, nbu_date = _nbu_table()
+    # По обіді НБУ вже публікує курс на завтра, тож просимо саме сьогоднішній
+    nbu, nbu_date = _nbu_table(datetime.now(ZoneInfo("Europe/Kyiv")).date())
     try:
         nbu_before, _ = _nbu_table(nbu_date - timedelta(days=1))
     except RatesError as exc:  # без попереднього дня просто не покажемо зміну
