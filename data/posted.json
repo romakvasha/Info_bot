@@ -1367,7 +1367,34 @@
    "topic": "education",
    "status": "posted",
    "at": "2026-10-13T11:54:47+00:00"
+  },
+  {
+   "url": "https://www.rmf24.pl/fakty/polska/news-budowa-drugiej-polskiej-elektrowni-jadrowej-jest-wazne-poroz,nIdn,1021663",
+   "key": "rmf24.pl/fakty/polska/news-budowa-drugiej-polskiej-elektrowni-jadrowej-jest-wazne-poroz,nIdn,1021663",
+   "title": "Budowa drugiej polskiej elektrowni jądrowej. Jest ważne porozumienie",
+   "headline": "Підготовка до будівництва другої атомної електростанції в Польщі",
+   "topic": "life",
+   "status": "posted",
+   "at": "2026-10-13T19:14:28+00:00"
+  },
+  {
+   "url": "https://www.polsatnews.pl/wiadomosc/2026-10-13/ewakuacja-szkoly-w-minsku-mazowieckim-trwa-akcja-sluzb/",
+   "key": "polsatnews.pl/wiadomosc/2026-10-13/ewakuacja-szkoly-w-minsku-mazowieckim-trwa-akcja-sluzb",
+   "title": "Ewakuacja szkoły w Mińsku Mazowieckim. Trwa akcja służb",
+   "headline": "Евакуація школи в Мінську Мазовецькому через невіклу речовину",
+   "topic": "safety",
+   "status": "posted",
+   "at": "2026-10-13T19:14:52+00:00"
+  },
+  {
+   "url": "https://www.rmf24.pl/fakty/polska/news-gis-ostrzega-fragmenty-szkla-w-wodzie-mineralnej,nIdn,1021738",
+   "key": "rmf24.pl/fakty/polska/news-gis-ostrzega-fragmenty-szkla-w-wodzie-mineralnej,nIdn,1021738",
+   "title": "GIS ostrzega: Fragmenty szkła w wodzie mineralnej",
+   "headline": "У Польщі відкликають партію мінеральної води Krystynka через скло",
+   "topic": "health",
+   "status": "posted",
+   "at": "2026-10-13T19:15:24+00:00"
   }
  ],
- "rates_date": "2026-10-12"
+ "rates_date": "2026-10-13"
 }
